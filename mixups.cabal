@@ -1,0 +1,79 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mixups
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/StaccatoSemibreve/mixups#readme>
+homepage:       https://github.com/StaccatoSemibreve/mixups#readme
+bug-reports:    https://github.com/StaccatoSemibreve/mixups/issues
+author:         janet
+maintainer:     staccato.semibreve@protonmail.com
+copyright:      janet
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/StaccatoSemibreve/mixups
+
+library
+  exposed-modules:
+      Custom
+      Evaluate
+      Game
+      Helpers
+      Parse
+  other-modules:
+      Paths_mixups
+  hs-source-dirs:
+      src
+  build-depends:
+      HsYAML
+    , base >=4.7 && <5
+    , bytestring
+    , hmatrix
+    , text
+    , unordered-containers
+  default-language: Haskell2010
+
+executable mixups-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_mixups
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HsYAML
+    , base >=4.7 && <5
+    , bytestring
+    , hmatrix
+    , mixups
+    , text
+    , unordered-containers
+  default-language: Haskell2010
+
+test-suite mixups-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_mixups
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      HsYAML
+    , base >=4.7 && <5
+    , bytestring
+    , hmatrix
+    , mixups
+    , text
+    , unordered-containers
+  default-language: Haskell2010

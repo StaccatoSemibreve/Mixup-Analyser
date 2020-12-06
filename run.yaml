@@ -1,0 +1,17 @@
+-
+    name: Simple
+    path: Simple.yaml
+    score:
+        - DamageDealt
+        - DamageDifference
+        - Win
+    context:
+        set:
+            - [AHealth, 1]
+            - [AChip, 2]
+            - [BHealth, 2]
+            - [BSuper, 1]
+        next:
+            attacker: A
+            defender: B
+            mixup: Mix
