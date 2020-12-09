@@ -95,7 +95,7 @@ data Option =
     Option { optionName::Text
            , require::Context
            , antirequire::Context
-           , optionWeight::Maybe Integer
+           , optionWeight::Maybe Double
     } deriving (Eq, Show)
 
 instance FromYAML Option where

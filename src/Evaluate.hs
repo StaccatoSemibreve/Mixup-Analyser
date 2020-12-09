@@ -18,8 +18,8 @@ import Data.Text (Text)
 -- a Recontext with Maybe specified weights, because we need those!
 data Outcome =
     Outcome { result::Recontext,
-              attWeight::(Maybe Integer),
-              defWeight::(Maybe Integer)
+              attWeight::(Maybe Double),
+              defWeight::(Maybe Double)
     } deriving (Eq, Show)
 
 -- a mixup with all the outcomes that require a different Context filtered out, and also the data tidied for our purposes
@@ -36,12 +36,49 @@ instance Functor (MatrixTree a) where
     fmap f (Node mname atts defs trees) = Node mname atts defs (map (map (fmap f)) trees)
     fmap f (Leaf value) = Leaf (f value)
 
--- a tree-like structure as above, except the lists are zipped into it (without duplication) TODO: SuperZippedMatrixTree, with duplication
+-- a tree-like structure as above, except the lists are zipped into it (without duplication)
 data ZippedMatrixTree a b = ZipNode Text [(a, [(a, ZippedMatrixTree a b)])] | ZipLeaf b
     deriving (Eq, Show)
 instance Functor (ZippedMatrixTree a) where
     fmap f (ZipNode mname trees) = ZipNode mname (map (fmap (map (fmap (fmap f)))) trees)
     fmap f (ZipLeaf value) = ZipLeaf (f value)
+
+-- turn a normal matrix tree into a zipped one, or vice versa for unzip
+zipTree :: MatrixTree a b -> ZippedMatrixTree a b
+zipTree (Leaf l) = ZipLeaf l
+zipTree (Node treename cols rows subtrees) = ZipNode treename (zip rows (map (zip cols . fmap zipTree) subtrees))
+
+unzipTree :: ZippedMatrixTree a b -> MatrixTree a b
+unzipTree (ZipLeaf l) = Leaf l
+unzipTree (ZipNode treename subtrees) = Node treename (fst . head . map (unzip . snd) $ subtrees) (fst . unzip $ subtrees) (map (map (unzipTree . snd) . snd) subtrees)
+
+data SuperZippedMatrixTree a b = SuperZipNode Text [[(a, a, SuperZippedMatrixTree a b)]] | SuperZipLeaf b
+    deriving (Eq, Show)
+instance Functor (SuperZippedMatrixTree a) where
+    fmap f (SuperZipNode mname trees) = SuperZipNode mname $ map (map (\(x,y,z) -> (x,y, fmap f z))) trees
+    fmap f (SuperZipLeaf value) = SuperZipLeaf (f value)
+
+-- turn a zipped matrix tree into a superzipped one, or vice versa for unzip
+superzipTree :: ZippedMatrixTree a b -> SuperZippedMatrixTree a b
+superzipTree (ZipLeaf l) = SuperZipLeaf l
+superzipTree (ZipNode treename subtrees) = SuperZipNode treename $ map (\(a, b) -> map (\(c,d) -> (a,c, superzipTree d)) $ b) subtrees
+
+-- unsuperzipTree :: SuperZippedMatrixTree a b -> ZippedMatrixTree a b
+unsuperzipTree (SuperZipLeaf l) = ZipLeaf l
+unsuperzipTree (SuperZipNode treename subtrees) = do
+    let rows = map (head . map fst3) subtrees
+    let cols = head . map (map snd3) $ subtrees
+    let outs = map (map thd3) $ subtrees
+    
+    ZipNode treename (zip rows (map (zip cols . fmap unsuperzipTree) outs))
+    where
+        fst3 (x,_,_) = x
+        snd3 (_,x,_) = x
+        thd3 (_,_,x) = x
+
+-- unsuperzipTree :: ZippedMatrixTree a b -> MatrixTree a b
+-- unsuperzipTree (ZipLeaf l) = Leaf l
+-- unsuperzipTree (ZipNode treename subtrees) = Node treename (fst . head . map (unzip . snd) $ subtrees) (fst . unzip $ subtrees) (map (map (unzipTree . snd) . snd) subtrees)
 
 followInstructions :: [MixupGroup] -> Instruction -> (Context, Maybe Mixup)
 followInstructions mgroups instr = recontextMix mgroups [] . context $ instr
@@ -95,32 +132,48 @@ recontext c r = contextCheck . foldr (\a b -> (recontextSingle r a):b) (recontex
 -- evaluate :: [MixupGroup] -> Context -> Either Context MixupFiltered -> Double
 -- evaluate mgroups con step = either score ((\(newcon, newmix) -> evaluate mgroups newcon $ mixupFilter newmix) . recontext mgroups con --oh no we need to do this to all subelements)
 
--- take the mixup data, the mixup name, the current context, and the list of outcomes - return a MatrixTree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate) TODO: rename
-recontextsToPartialGame :: [MixupGroup] -> Text -> Context -> [Outcome] -> MatrixTree (Text, Maybe Integer) Context
-recontextsToPartialGame mgroups name c r = do
+-- take the mixup data, the mixup name, the current context, and the list of outcomes - return a MatrixTree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate)
+outcomesToContextTree :: [MixupGroup] -> Text -> Context -> [Outcome] -> MatrixTree (Text, Maybe Double) Context
+outcomesToContextTree mgroups name c r = do
     let atts = sortOn fst . nub . map (\out -> (attackerOption . result $ out, attWeight out)) $ r
     let defs = sortOn fst . nub . map (\out -> (defenderOption . result $ out, defWeight out)) $ r
     let conmix = map (map (recontextMix mgroups c . result)) . groupBy ((==) `on` (defenderOption . result)) . sortOn (defenderOption . result) . sortOn (attackerOption . result) $ r
     let filtmix = map (map (uncurry mixupFilter)) conmix
-    Node name atts defs (map (map (either Leaf (\(MixupFiltered mname con outs) -> recontextsToPartialGame mgroups mname con outs))) filtmix)
+    Node name atts defs (map (map (either Leaf (\(MixupFiltered mname con outs) -> outcomesToContextTree mgroups mname con outs))) filtmix)
 
 -- does what it says on the tin really, dunno if i even need it, i just included it for completeness's sake - to be applied to any form of MatrixTree - score is from Custom! TODO: oh no i need to carry score functions through to here from the original Instruction, how the heck do i do that
 scoreGame :: (Functor (a b)) => a b Context -> a b Double
 scoreGame = fmap score
 
--- turn a normal matrix tree into a zipped one, or vice versa for unzip
-zipTree :: MatrixTree a b -> ZippedMatrixTree a b
-zipTree (Leaf l) = ZipLeaf l
-zipTree (Node treename cols rows subtrees) = ZipNode treename (zip rows (map (zip cols . fmap zipTree) subtrees))
-
-unzipTree :: ZippedMatrixTree a b -> MatrixTree a b
-unzipTree (ZipLeaf l) = Leaf l
-unzipTree (ZipNode treename subtrees) = Node treename (fst . head . map (unzip . snd) $ subtrees) (fst . unzip $ subtrees) (map (map (unzipTree . snd) . snd) subtrees)
-
--- return a filtered tree such that only options without specified weights are included, for use in evaluation using Game TODO: i need to handle cases where exactly one weight is specified, for which i should use a SuperZippedMatrixTree that i haven't put together yet
-filterGame :: ZippedMatrixTree (Text, Maybe Integer) a -> ZippedMatrixTree (Text, Maybe Integer) a
-filterGame (ZipLeaf val) = ZipLeaf val
-filterGame (ZipNode mname subtrees) = ZipNode mname (map (fmap (filter (isNothing . snd . fst))) . filter (isNothing . snd . fst) $ subtrees)
+-- functionality: each fixed element is a new submixup, take the weighted mean of the opponent's option weights
+-- evalGame :: SuperZippedMatrixTree (Text, Maybe Integer) a -> [SuperZippedMatrixTree (Text, Maybe Integer) a]
+-- evalGame (SuperZipLeaf val) = [SuperZipLeaf val]
+-- aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evalGame (SuperZipNode mname subtrees) = do
+--      !!0: no fixed weights, !!1: fixed rows, !!2: fixed cols, !!3: both fixed
+    let fixedness = zip ["unfixed", "rowfixed", "colfixed", "allfixed"] [SuperZipNode mname (map (filter (\x -> and[isNothing . snd . fst3 $ x, isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[not . isNothing . snd . fst3 $ x, isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[isNothing . snd . fst3 $ x, not . isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[not . isNothing . snd . fst3 $ x, not . isNothing . snd . snd3 $ x])) subtrees)]
+    let rowweights = sum . map (maybe 0 id . snd) . map fst3 . head $ subtrees
+    let colweights = sum . map (maybe 0 id . snd) . map snd3 . head $ subtrees
+--     let fixednessMapped = map eval fixedness
+    (rowweights, colweights, fixedness!!0)
+    where
+        fst3 (x,_,_) = x
+        snd3 (_,x,_) = x
+        thd3 (_,_,x) = x
+        
+--         toGame :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Game
+--         toGame (SuperZipNode gamename trees) = do
+--             let rows = map (head . map fst3) subtrees
+--             let cols = head . map (map snd3) $ subtrees
+--             let outs = map (map (quickndirty . thd3)) $ subtrees
+--             game gamename cols rows outs
+--             
+        quickndirty :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Double
+        quickndirty (SuperZipLeaf val) = val
+        quickndirty _ = 0
+        
+--         eval :: (String, SuperZippedMatrixTree) => Double
+--         eval "unfixed" (SuperZipNode mname subtrees) = evalGame 
 
 -- make sure it all works, using what is very similar (perhaps identical) to the final code that will be in Main tbh, but it's easier to work with here for now anyway
 test :: IO ()
@@ -128,4 +181,5 @@ test = do
     instructions <- readInstructions
     mgroups <- mapM instructionToMixupGroups instructions
     let starts = zipWith followInstructions mgroups instructions
-    mapM_ (\(c,m) -> putStrLn . show . unzipTree . fmap score . filterGame . zipTree . recontextsToPartialGame (head mgroups) "Mix" c . either (\_ -> []) outcomesFiltered . uncurry mixupFilter $ (c,m)) starts
+    let contexttrees = map (\(c,m) -> outcomesToContextTree (head mgroups) "Mix" c . either (const []) outcomesFiltered . mixupFilter c $ m) starts
+    mapM_ (putStrLn . show . evalGame . superzipTree . zipTree . fmap score) contexttrees

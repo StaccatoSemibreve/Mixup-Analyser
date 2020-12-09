@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- the helper functions used by Custom so that it's not also full of things that should never be altered
 module Helpers
     ( setContextValue
     , addContextValue

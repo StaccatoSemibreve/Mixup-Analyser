@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- contains the specialised functions for converting contexts into scores, updating context states, and checking if a game has ended
+-- TODO: define this at runtime somehow, maybe use hint? idk
 module Custom
     ( contextCheck
     , endCheck

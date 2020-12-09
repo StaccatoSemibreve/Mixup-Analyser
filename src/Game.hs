@@ -1,6 +1,7 @@
 -- calculates nash equilibriums, does related backend stuff
 module Game
-    ( game -- create a Game from the necessary input data
+    ( Game
+    , game -- create a Game from the necessary input data
     , solve -- take a Game in, return a Game with a solved optimal nash equilibrium (better result than nashpy in at least one weird testcase!)
     , calcEV -- take a Game in and two sets of weights (one for the row player, one for the column player), return an EV - TODO: actually test this, make sure it works!
     ) where
