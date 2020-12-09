@@ -1,6 +1,7 @@
 -- calculates nash equilibriums, does related backend stuff
 module Game
-    ( Game
+    ( Game (gameName, colNames, rowNames, gameMatrix, outcomes)
+    , Result (ev, weightsCols, weightsRows)
     , game -- create a Game from the necessary input data
     , solve -- take a Game in, return a Game with a solved optimal nash equilibrium (better result than nashpy in at least one weird testcase!)
     , calcEV -- take a Game in and two sets of weights (one for the row player, one for the column player), return an EV - TODO: actually test this, make sure it works!
@@ -8,6 +9,7 @@ module Game
 
 import Data.List
 import Data.Function
+import Data.Text (Text, unpack)
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Data
 
@@ -18,15 +20,22 @@ instance Ord Result where
 instance Eq Result where
     (==) = (==) `on` ev
 
-data Game = Game {gameName::String, colNames::[String], rowNames::[String], gameMatrix::(Matrix Double), outcomes::(Maybe Result)}
+data Game = Game {gameName::Text, colNames::[Text], rowNames::[Text], gameMatrix::(Matrix Double), outcomes::(Maybe Result)}
 
 instance Ord Game where
     compare = compare `on` gameName
 instance Eq Game where
     (==) = (==) `on` gameName
 instance Show Game where
-    show (Game gname cnames rnames m Nothing) = gname ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show cnames) ++ "\nRow player: " ++ (show rnames)
-    show (Game gname cnames rnames m (Just (Outcome ev wc wr))) = gname ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show . zip cnames $ wc) ++ "\nRow player: " ++ (show . zip rnames $ wr) ++ "\nEV: " ++ (show ev)
+    show (Game gname cnames rnames m Nothing) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show cnames) ++ "\nRow player: " ++ (show rnames)
+    show (Game gname cnames rnames m (Just (Outcome ev wc wr))) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show . zip cnames $ wc) ++ "\nRow player: " ++ (show . zip rnames $ wr) ++ "\nEV: " ++ (show ev)
+
+data GameTree = GameTreeNode {treeName::Text, treeColNames::[Text], treeRowNames::[Text], treeMatrix::[[GameTree]], treeOutcomes::(Maybe Result)} | GameTreeLeaf Double
+
+instance Ord GameTree where
+    compare = compare `on` treeName
+instance Eq GameTree where
+    (==) = (==) `on` treeName
 
 -- first, get all possible combinations of supports (equivalent to cartesian product then groupBy) - note that these are "antisupports", they are taken away rather than included for ease of use with hmatrix
 -- then convert to the respective matrices and solve
@@ -74,7 +83,7 @@ solve (Game x1 x2 x3 m _) = Game x1 x2 x3 m (Just (maximum . map (minimum) . map
         tidy :: (([Int],[Int]), Result) -> Result
         tidy ((r, c), Outcome ev w1 w2) = Outcome ev (addIndexes 0 r $ w1) (addIndexes 0 c $ w2)
 
-game :: String -> [String] -> [String] -> [[Double]] -> Game
+game :: Text -> [Text] -> [Text] -> [[Double]] -> Game
 game n c r m = Game n c r (fromLists m) Nothing
 
 calcEV :: Game -> [Double] -> [Double] -> Double

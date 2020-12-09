@@ -141,39 +141,27 @@ outcomesToContextTree mgroups name c r = do
     let filtmix = map (map (uncurry mixupFilter)) conmix
     Node name atts defs (map (map (either Leaf (\(MixupFiltered mname con outs) -> outcomesToContextTree mgroups mname con outs))) filtmix)
 
--- does what it says on the tin really, dunno if i even need it, i just included it for completeness's sake - to be applied to any form of MatrixTree - score is from Custom! TODO: oh no i need to carry score functions through to here from the original Instruction, how the heck do i do that
+-- does what it says on the tin really, dunno if i even need it, i just included it for completeness's sake - to be applied to any form of MatrixTree - score is from Custom! TODO: oh no i need to carry score function names through to here from the original Instruction, how the heck do i do that
 scoreGame :: (Functor (a b)) => a b Context -> a b Double
 scoreGame = fmap score
 
--- functionality: each fixed element is a new submixup, take the weighted mean of the opponent's option weights
--- evalGame :: SuperZippedMatrixTree (Text, Maybe Integer) a -> [SuperZippedMatrixTree (Text, Maybe Integer) a]
--- evalGame (SuperZipLeaf val) = [SuperZipLeaf val]
--- aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+evalGame :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Game
 evalGame (SuperZipNode mname subtrees) = do
+    -- first: fmap every leaf child into its value, and every node child into a game, evaluate the game and take the ev
 --      !!0: no fixed weights, !!1: fixed rows, !!2: fixed cols, !!3: both fixed
     let fixedness = zip ["unfixed", "rowfixed", "colfixed", "allfixed"] [SuperZipNode mname (map (filter (\x -> and[isNothing . snd . fst3 $ x, isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[not . isNothing . snd . fst3 $ x, isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[isNothing . snd . fst3 $ x, not . isNothing . snd . snd3 $ x])) subtrees), SuperZipNode mname (map (filter (\x -> and[not . isNothing . snd . fst3 $ x, not . isNothing . snd . snd3 $ x])) subtrees)]
     let rowweights = sum . map (maybe 0 id . snd) . map fst3 . head $ subtrees
     let colweights = sum . map (maybe 0 id . snd) . map snd3 . head $ subtrees
---     let fixednessMapped = map eval fixedness
-    (rowweights, colweights, fixedness!!0)
+--     (rowweights, colweights, fixedness)
+    game mname ["blah"] ["blah"] [[0]]
     where
+--         eval :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Double
+--         eval (SuperZipLeaf val) = val
+--         eval node = ev . fromMaybe . outcomes . solve . evalGame $ node
+        
         fst3 (x,_,_) = x
         snd3 (_,x,_) = x
         thd3 (_,_,x) = x
-        
---         toGame :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Game
---         toGame (SuperZipNode gamename trees) = do
---             let rows = map (head . map fst3) subtrees
---             let cols = head . map (map snd3) $ subtrees
---             let outs = map (map (quickndirty . thd3)) $ subtrees
---             game gamename cols rows outs
---             
-        quickndirty :: SuperZippedMatrixTree (Text, Maybe Double) Double -> Double
-        quickndirty (SuperZipLeaf val) = val
-        quickndirty _ = 0
-        
---         eval :: (String, SuperZippedMatrixTree) => Double
---         eval "unfixed" (SuperZipNode mname subtrees) = evalGame 
 
 -- make sure it all works, using what is very similar (perhaps identical) to the final code that will be in Main tbh, but it's easier to work with here for now anyway
 test :: IO ()
