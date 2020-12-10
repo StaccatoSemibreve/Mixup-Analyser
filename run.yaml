@@ -9,7 +9,7 @@
         set:
             - [AHealth, 1]
             - [AChip, 2]
-            - [BHealth, 1]
+            - [BHealth, 2]
             - [BSuper, 1]
         next:
             attacker: A

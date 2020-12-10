@@ -38,9 +38,9 @@ library
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , containers
     , hmatrix
     , text
-    , unordered-containers
   default-language: Haskell2010
 
 executable mixups-exe
@@ -54,10 +54,10 @@ executable mixups-exe
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , containers
     , hmatrix
     , mixups
     , text
-    , unordered-containers
   default-language: Haskell2010
 
 test-suite mixups-test
@@ -72,8 +72,8 @@ test-suite mixups-test
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , containers
     , hmatrix
     , mixups
     , text
-    , unordered-containers
   default-language: Haskell2010

@@ -46,4 +46,4 @@ score = scoreWin
 -- scoreHealthDifferential context = 
 
 scoreWin :: Context -> Double
-scoreWin context = ((-) `on` fromIntegral) (fromEnum . (== 0) . getContextValue healthDef $ context) (fromEnum . (== 0) . getContextValue healthAtt $ context)
+scoreWin context = fromIntegral . ((-) `on` fromEnum . (== 0)) (getContextValue healthDef context) $ (getContextValue healthAtt context)

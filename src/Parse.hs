@@ -6,7 +6,7 @@ module Parse
     , instructionToMixupGroups -- take an Instruction, return all the relevant mixup data from the file it sends us to
     , Instruction (Instruction, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context) TODO: output, use scores data
     , Context -- a lookup table of current game state, v important to track this!
-    , Recontext (Recontext, attackerOption, defenderOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
+    , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
     , Mixup (Mixup, mixupName) -- a raw mixup
     , MixupGroup (MixupGroup, attacker, defender, mixups) -- a list of all the mixups between a specific attacker and specific defender - usually, [MixupGroup] will be used to represent an entire mixup data file
     , Option (Option, optionName, optionWeight) -- a specific option for one of the players to use, Maybe including a fixed weight (otherwise, the weight is calculated using Game)
@@ -34,8 +34,8 @@ instance FromYAML Instruction where
 type Context = [(Text, Integer)]
 
 data Recontext =
-    Recontext { attackerOption::Text
-              , defenderOption::Text
+    Recontext { colOption::Text
+              , rowOption::Text
               , set::Context
               , add::Context
               , next::(Maybe NextMixup)
