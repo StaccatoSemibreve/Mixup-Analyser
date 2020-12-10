@@ -15,3 +15,20 @@
             attacker: A
             defender: B
             mixup: Mix
+-
+    name: Simple2
+    path: Simple.yaml
+    score:
+        - DamageDealt
+        - DamageDifference
+        - Win
+    context:
+        set:
+            - [AHealth, 1]
+            - [AChip, 2]
+            - [BHealth, 1]
+            - [BSuper, 1]
+        next:
+            attacker: A
+            defender: B
+            mixup: Mix

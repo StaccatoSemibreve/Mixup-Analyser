@@ -29,8 +29,9 @@ data MixupFiltered =
                   , outcomesFiltered::[Outcome]
     } deriving (Eq, Show)
 
-instructionToOutcome :: Instruction -> Outcome
-instructionToOutcome (Instruction _ _ _ context) = Outcome [] context Nothing Nothing
+type Opt = (Text, Maybe Double)
+type TreeContext = Tree (Opt, Opt, Context)
+type TreeScore = Tree (Opt, Opt, Double)
 
 -- take a Mixup, filter it or just give a context if it would be empty
 mixupFilter :: Context -> Maybe Mixup -> Either Context MixupFiltered
@@ -50,36 +51,38 @@ mixupFilter context (Just (Mixup mname mreq munreq atts defs outs)) = case compa
         compareToContext context reqs unreqs = (and . map (`elem` context) $ reqs) && (not . or . map (`elem` context) $ unreqs)
         
         recontextToOutcome :: [Option] -> [Option] -> Recontext -> Outcome
-        recontextToOutcome atts defs rec = Outcome context rec (optionWeight . optionFromRecontextAtt atts $ rec) (optionWeight . optionFromRecontextDef defs $ rec)
+        recontextToOutcome atts defs rec = Outcome context rec (optionWeight . optionFromRecontextCol atts $ rec) (optionWeight . optionFromRecontextRow defs $ rec)
         
-        optionFromRecontextAtt :: [Option] -> Recontext -> Option
-        optionFromRecontextAtt options (Recontext att _ _ _ _) = maybe (error "missing attack option") id . find ((== att) . optionName) $ options
-        optionFromRecontextDef :: [Option] -> Recontext -> Option
-        optionFromRecontextDef options (Recontext _ def _ _ _) = maybe (error "missing defense option") id . find ((== def) . optionName) $ options
+        optionFromRecontextCol :: [Option] -> Recontext -> Option
+        optionFromRecontextCol options (Recontext att _ _ _ _) = maybe (error "missing attack option") id . find ((== att) . optionName) $ options
+        optionFromRecontextRow :: [Option] -> Recontext -> Option
+        optionFromRecontextRow options (Recontext _ def _ _ _) = maybe (error "missing defense option") id . find ((== def) . optionName) $ options
 mixupFilter context Nothing = Left context
 
--- use a Maybe NextMixup to get a Maybe Mixup
-mixupNext :: [MixupGroup] -> Maybe NextMixup -> Maybe Mixup
-mixupNext mgroups (Just (NextMixup att def mix)) = Just . head . filter ((== mix) . mixupName) . mixups . head . filter ((== att) . attacker) . filter ((== def) . defender) $ mgroups
-mixupNext _ Nothing = Nothing
+
 
 -- apply a Recontext and return a pair of the resulting Context and Maybe, if there was a next in the Recontext, the next Mixup
 recontextMix :: [MixupGroup] -> Context -> Recontext -> (Context, Maybe Mixup)
 recontextMix mgroups con r = (\newcon -> (newcon, if endCheck newcon then Nothing else mixupNext mgroups . next $ r)) $ recontext con r
-
--- for each context key, check if it's in set - if so, set it, else check if it's in add, and add it to that (or otherwise add it to 0)
--- combine this with the sets not in context, and the adds in neither set nor context
-recontext :: Context -> Recontext -> Context
-recontext c r = contextCheck . foldr (\a b -> (recontextSingle r a):b) (recontextLeftovers c r) $ c
     where
-        recontextSingle :: Recontext -> (Text, Integer) -> (Text, Integer)
-        recontextSingle r (k,v) = (k, maybe ((+) v . maybe 0 id . lookup k $ add r) id . lookup k $ set r)
+--         use a Maybe NextMixup to get a Maybe Mixup
+        mixupNext :: [MixupGroup] -> Maybe NextMixup -> Maybe Mixup
+        mixupNext mgroups (Just (NextMixup att def mix)) = Just . head . filter ((== mix) . mixupName) . mixups . head . filter ((== att) . attacker) . filter ((== def) . defender) $ mgroups
+        mixupNext _ Nothing = Nothing
         
-        recontextLeftovers :: Context -> Recontext -> Context
-        recontextLeftovers c (Recontext _ _ s a _) = deleteFirstsBy ((==) `on` fst) (unionBy ((==) `on` fst) s a) c
+        -- for each context key, check if it's in set - if so, set it, else check if it's in add, and add it to that (or otherwise add it to 0)
+        -- combine this with the sets not in context, and the adds in neither set nor context
+        recontext :: Context -> Recontext -> Context
+        recontext c r = contextCheck . foldr (\a b -> (recontextSingle r a):b) (recontextLeftovers c r) $ c
+            where
+                recontextSingle :: Recontext -> (Text, Integer) -> (Text, Integer)
+                recontextSingle r (k,v) = (k, maybe ((+) v . maybe 0 id . lookup k $ add r) id . lookup k $ set r)
+                
+                recontextLeftovers :: Context -> Recontext -> Context
+                recontextLeftovers c (Recontext _ _ s a _) = deleteFirstsBy ((==) `on` fst) (unionBy ((==) `on` fst) s a) c
 
 -- take the mixup data, the mixup name, the current context, and the list of outcomes - return a Tree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate)
-outcomesToContextTree :: [MixupGroup] -> Text -> Instruction -> Tree ((Text, Maybe Double), (Text, Maybe Double), Context)
+outcomesToContextTree :: [MixupGroup] -> Text -> Instruction -> TreeContext
 outcomesToContextTree mgroup name (Instruction _ _ _ out) = unfoldTree unfolder (Outcome [] out Nothing Nothing)
     where
         unfolder :: Outcome -> (((Text, Maybe Double), (Text, Maybe Double), Context), [Outcome])
@@ -87,9 +90,14 @@ outcomesToContextTree mgroup name (Instruction _ _ _ out) = unfoldTree unfolder 
             let (newcontext, mixmaybe) = recontextMix mgroup (startContext o) (result o)
             (((colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
+scoreTree :: TreeContext -> TreeScore
+scoreTree = fmap (\(a,b,c) -> (a,b, score c))
+
+
+
 test :: IO ()
 test = do
     instructions <- readInstructions
     mgroups <- mapM instructionToMixupGroups instructions
     let contexttrees = map (\(mgroup,instr) -> outcomesToContextTree mgroup "Mix" instr) . zip mgroups $ instructions
-    mapM_ (putStrLn . drawTree . fmap show) contexttrees
+    mapM_ (putStrLn . drawTree . fmap show . scoreTree) contexttrees
