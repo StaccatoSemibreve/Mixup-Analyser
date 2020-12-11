@@ -5,7 +5,6 @@ import Game
 -- parses yaml into specific types also stored here
 import Parse
 -- manipulates the yaml data into the relevant data trees, evaluates from that
--- TODO: finish
 import Evaluate
 -- contains the specialised functions for converting contexts into scores, updating context states, and checking if a game has ended
 -- TODO: define this at runtime somehow, maybe use hint? idk

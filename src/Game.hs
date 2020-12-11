@@ -1,4 +1,6 @@
 -- calculates nash equilibriums, does related backend stuff
+{-# LANGUAGE OverloadedStrings #-}
+
 module Game
     ( Game (gameName, colNames, rowNames, gameMatrix, outcomes)
     , Result (ev, weightsCols, weightsRows)
@@ -9,16 +11,10 @@ module Game
 
 import Data.List
 import Data.Function
+import Data.Maybe
 import Data.Text (Text, unpack)
 import Numeric.LinearAlgebra
 import Numeric.LinearAlgebra.Data
-
-data Result = Outcome {ev::Double, weightsCols::[Double], weightsRows::[Double]}
-    deriving (Show)
-instance Ord Result where
-    compare = compare `on` ev
-instance Eq Result where
-    (==) = (==) `on` ev
 
 data Game = Game {gameName::Text, colNames::[Text], rowNames::[Text], gameMatrix::(Matrix Double), outcomes::(Maybe Result)}
 
@@ -30,12 +26,12 @@ instance Show Game where
     show (Game gname cnames rnames m Nothing) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show cnames) ++ "\nRow player: " ++ (show rnames)
     show (Game gname cnames rnames m (Just (Outcome ev wc wr))) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show . zip cnames $ wc) ++ "\nRow player: " ++ (show . zip rnames $ wr) ++ "\nEV: " ++ (show ev)
 
-data GameTree = GameTreeNode {treeName::Text, treeColNames::[Text], treeRowNames::[Text], treeMatrix::[[GameTree]], treeOutcomes::(Maybe Result)} | GameTreeLeaf Double
-
-instance Ord GameTree where
-    compare = compare `on` treeName
-instance Eq GameTree where
-    (==) = (==) `on` treeName
+data Result = Outcome {ev::Double, weightsCols::[Double], weightsRows::[Double]}
+    deriving (Show)
+instance Ord Result where
+    compare = compare `on` ev
+instance Eq Result where
+    (==) = (==) `on` ev
 
 -- first, get all possible combinations of supports (equivalent to cartesian product then groupBy) - note that these are "antisupports", they are taken away rather than included for ease of use with hmatrix
 -- then convert to the respective matrices and solve
@@ -88,3 +84,51 @@ game n c r m = Game n c r (fromLists m) Nothing
 
 calcEV :: Game -> [Double] -> [Double] -> Double
 calcEV (Game _ _ _ mat _) cols rows = head . head . toLists $ (row cols) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col rows)
+
+
+data GameComplex = GameComplex {gameCName::Text, gameData::[((Text, Maybe Double), (Text, Maybe Double), Double)], outcomesC::(Maybe Result)}
+
+gameComplex :: Text -> [((Text, Maybe Double), (Text, Maybe Double), Double)] -> GameComplex
+gameComplex t m = GameComplex t (sort m) Nothing
+
+-- solveComplex :: GameComplex -> [[((Text, Maybe Double), (Text, Maybe Double), Double)]]
+solveComplex gc = do
+--  get all the subgame data and split it according to type: neither = Nothing, col = Nothing, row = Nothing, both = Nothing
+--  evs :: [[((Text, Maybe Double), (Text, Maybe Double), Double)]]
+    let evs = [filter (\outcome -> typeCheck outcome == 0) . gameData $ gc, filter (\outcome -> typeCheck outcome == 1) . gameData $ gc, filter (\outcome -> typeCheck outcome == 2) . gameData $ gc, filter (\outcome -> typeCheck outcome == 3) . gameData $ gc]
+    
+--  handle neither = Nothing
+--  [((Text, Maybe Double), (Text, Maybe Double), Double)] -> game Text [Text] [Text] [[Double]] -> Game -> Game (solved) -> Maybe Result -> Result
+    let neitherGame = solve . game "" (nub . map (fst . fst3) $ evs!!0) (nub . map (fst . snd3) $ evs!!0) $ (map (map thd3) . groupBy ((==) `on` snd3) $ evs!!0)
+    let neitherResult = maybe (error "???") id . outcomes $ neitherGame
+    let neitherCWeights = weightsCols neitherResult
+    let neitherRWeights = weightsRows neitherResult
+    
+--  handle col = Nothing
+--  [((Text, Maybe Double), (Text, Maybe Double), Double)] -> [game Text [Text] [Text] [[Double]]] -> [Game] -> [Game (solved)] -> [Maybe Result] -> [Result]
+    let colGames = map (\col -> solve . game "" [head . map (fst . fst3) $ col] (map (fst . snd3) $ col) $ (map (map thd3) . transpose . groupBy ((==) `on` snd3) $ col)) . groupBy ((==) `on` fst3) $ evs!!1
+    let colResults = map (maybe (error "???") id . outcomes) colGames
+    let colCWeights = map (maybe (error "???") id . snd . fst3) $ evs!!1
+    let colRWeights = map weightsRows colResults
+    
+--  handle row = Nothing
+    let rowGames = map (\col -> solve . game "" [head . map (fst . fst3) $ col] (map (fst . snd3) $ col) $ (map (map thd3) . groupBy ((==) `on` snd3) $ col)) . groupBy ((==) `on` snd3) $ evs!!1
+    let rowResults = map (maybe (error "???") id . outcomes) rowGames
+    let rowCWeights = map weightsCols rowResults
+    let rowRWeights = map (maybe (error "???") id . snd . snd3) $ evs!!2
+    
+--  handle both = Nothing
+    let neitherCWeights = map (maybe (error "???") id . snd . fst3) $ evs!!3
+    let neitherRWeights = map (maybe (error "???") id . snd . snd3) $ evs!!3
+    
+    let totalCUnfixed = 1 - sum colCWeights - sum neitherCWeights
+    let totalRUnfixed = 1 - sum rowRWeights - sum neitherRWeights
+    
+    gc
+    
+    where
+        fst3 (x,_,_) = x
+        snd3 (_,x,_) = x
+        thd3 (_,_,x) = x
+        
+        typeCheck ((_,c), (_,r), _) = (fromEnum . isNothing $ c) + ((2*) . fromEnum . isNothing $ r)

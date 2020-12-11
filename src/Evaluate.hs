@@ -90,14 +90,16 @@ outcomesToContextTree mgroup name (Instruction _ _ _ out) = unfoldTree unfolder 
             let (newcontext, mixmaybe) = recontextMix mgroup (startContext o) (result o)
             (((colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
-scoreTree :: TreeContext -> TreeScore
-scoreTree = fmap (\(a,b,c) -> (a,b, score c))
+-- TODO: fold TreeScore such that the end result is an evaluated GameComplex
+-- the fold function should first convert the summary values (of type (Opt, Opt, GameComplex)) to their EVs (Opt, Opt, Double), then turn those EVs into an (Opt, Opt, GameComplex {gameCName::Text, gameData::[((Text, Maybe Double), (Text, Maybe Double), Double)], outcomesC::(Maybe Result)})
+-- treeScoreFolder :: (Opt, Opt, Context) -> [(Opt, Opt, GameComplex)] -> (Opt, Opt, GameComplex)
 
-
+scanTree f ~(Node r l) = Node r $ map (scan' r) l where
+    scan' a ~(Node n b) = let a' = f a n in Node a' $ map (scan' r) b 
 
 test :: IO ()
 test = do
     instructions <- readInstructions
     mgroups <- mapM instructionToMixupGroups instructions
     let contexttrees = map (\(mgroup,instr) -> outcomesToContextTree mgroup "Mix" instr) . zip mgroups $ instructions
-    mapM_ (putStrLn . drawTree . fmap show . scoreTree) contexttrees
+    mapM_ (putStrLn . drawTree . fmap show) contexttrees
