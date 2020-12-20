@@ -7,10 +7,10 @@ module Game
     , game -- create a Game from the necessary input data
     , solve -- take a Game in, return a Game with a solved optimal nash equilibrium (better result than nashpy in at least one weird testcase!)
     , calcEV -- take a Game in and two sets of weights (one for the row player, one for the column player), return an EV - TODO: actually test this, make sure it works!
-    , GameComplex (gameCName, gameData, outcomesC)
+    , GameComplex (GameComplex, gameCName, gameData, outcomesC)
     , gameComplex -- like a Game but has fixed weight options too
     , solveComplex
-    , ResultComplex (resCEV, resCAtts, resCDefs)
+    , ResultComplex (ResultComplex, resCEV, resCAtts, resCDefs)
     ) where
 
 import Data.List
@@ -110,7 +110,7 @@ instance Show GameComplex where
     show (GameComplex gname "" "" gdata Nothing) = (unpack gname) ++ "\n" ++ (show gdata)
     show (GameComplex gname "" "" gdata (Just gout)) = (unpack gname) ++ "\n" ++ (show gout)
     show (GameComplex gname attname defname gdata Nothing) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")\n" ++ (show gdata)
-    show (GameComplex gname attname defname gdata (Just gout)) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")\n" ++ (show gout)
+    show (GameComplex gname attname defname gdata (Just gout)) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")" ++ (show gout)
 
 gameComplex :: Text -> Text -> Text -> [(Opt, Opt, Double)] -> GameComplex
 gameComplex t1 t2 t3 m = GameComplex t1 t2 t3 (sort m) Nothing

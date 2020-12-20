@@ -39,9 +39,29 @@ main =  do
     
     instructions <- readInstructions
     mgroups <- mapM instructionToMixupGroups instructions
-    let contexttrees = map (\(mgroup,instr) -> (outcomesToContextTree mgroup instr, instr)) . zip mgroups $ instructions
-    let gametrees = map (\(tree,instr) -> (extend (foldTree $ treeScoreFolder scoreWin) tree, instr)) contexttrees
-    mapM_ (\(tree,instr) -> writeFile (unpack . outpath $ instr) . drawTree . fmap show $ tree) gametrees
+    let scoredata = map scores instructions
+    let contexttrees = map (\(mgroup,instr) -> (outcomesToContextTree mgroup instr, scores instr)) . zip mgroups $ instructions
+    let gametrees = concat . map (\(tree,scoreDatas) -> map (\scoreData -> (extend (foldTree $ treeScoreFolder scoreWin) tree, scoreData)) scoreDatas) $ contexttrees
+    mapM_ (\(tree,scoreData) -> writeFile ("out/" ++ (unpack . outPath $ scoreData)) . drawTree . fmap prettyshownode $ tree) gametrees
     
     -- make sure i have something at the end so the do doesn't complain
     putStrLn "hlello wrorled"
+    where
+        prettyshownode (c, ("None1", _), ("None2", _), g) = (prettyshowgame g c)
+        prettyshownode (c, (o1, _), ("None2", _), g) = (unpack o1) ++ ": " ++ (prettyshowgame g c)
+        prettyshownode (c, ("None1", _), (o2, _), g) = (unpack o2) ++ ": " ++ (prettyshowgame g c)
+        prettyshownode (c, (o1, _), (o2, _), g) = (unpack o1) ++ " + " ++ (unpack o2) ++ ": " ++ (prettyshowgame g c)
+        
+        prettyshowgame (GameComplex "" _ _ gdata (Just gout)) c = "\n" ++ (prettyshowcontext c) ++ prettyshowres gout
+        prettyshowgame (GameComplex gname "" "" gdata (Just gout)) c = (unpack gname) ++ "\n" ++ (prettyshowcontext c) ++ "\n" ++ (prettyshowres gout)
+        prettyshowgame (GameComplex gname attname defname gdata (Just gout)) c = (unpack gname) ++ "\n" ++ (prettyshowcontext c) ++ "\n" ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")" ++ (prettyshowres gout)
+        
+        prettyshowcontext c = " Context: " ++ show c
+        
+        prettyshowres (ResultComplex ev sd [_] [_]) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd)
+        prettyshowres (ResultComplex ev sd [_] defs) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Defender Options: " ++ (prettyshowouts defs)
+        prettyshowres (ResultComplex ev sd atts [_]) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Attacker Options: " ++ (prettyshowouts atts)
+        prettyshowres (ResultComplex ev sd atts defs) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Attacker Options: " ++ (prettyshowouts atts) ++ "\n Defender Options: " ++ (prettyshowouts defs)
+        
+        prettyshowouts outs = (\l -> foldl (\a b -> a ++ " - " ++ b) (head l) (tail l)) . map prettyshowpair $ outs
+        prettyshowpair (opt, val) = (unpack opt) ++ ": " ++ (show val)
