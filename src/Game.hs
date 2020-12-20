@@ -29,9 +29,9 @@ instance Eq Game where
     (==) = (==) `on` gameName
 instance Show Game where
     show (Game gname cnames rnames m Nothing) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show cnames) ++ "\nRow player: " ++ (show rnames)
-    show (Game gname cnames rnames m (Just (Result ev wc wr))) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show . zip cnames $ wc) ++ "\nRow player: " ++ (show . zip rnames $ wr) ++ "\nEV: " ++ (show ev)
+    show (Game gname cnames rnames m (Just (Result ev sd wc wr))) = (unpack gname) ++ ":\n" ++ (show m) ++ "\nColumn player: " ++ (show . zip cnames $ wc) ++ "\nRow player: " ++ (show . zip rnames $ wr) ++ "\nEV: " ++ (show ev) ++ ", SD: " ++ (show sd)
 
-data Result = Result {ev::Double, weightsCols::[Double], weightsRows::[Double]}
+data Result = Result {ev::Double, sd::Double, weightsCols::[Double], weightsRows::[Double]}
     deriving (Show)
 instance Ord Result where
     compare = compare `on` ev
@@ -52,15 +52,16 @@ solve (Game x1 x2 x3 m _) = Game x1 x2 x3 m (Just (maximum . map (minimum) . map
         subsolve :: Matrix Double -> Result
         subsolve m =
             case (rows m, cols m) of
-                 (1,1) -> Result (head . concat . toLists $ m) [1] [1]
-                 (1,c) -> (\ev -> Result (snd ev) ((take (fst ev) (repeat 0)) ++ [1] ++ (take (c - fst ev - 1) (repeat 0))) [1]) $ maximumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
-                 (r,1) -> (\ev -> Result (snd ev) [1] ((take (fst ev) (repeat 0)) ++ [1] ++ (take (r - fst ev - 1) (repeat 0)))) $ minimumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
+                 (1,1) -> Result (head . concat . toLists $ m) 0 [1] [1]
+                 (1,c) -> (\ev -> Result (snd ev) 0 ((take (fst ev) (repeat 0)) ++ [1] ++ (take (c - fst ev - 1) (repeat 0))) [1]) $ maximumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
+                 (r,1) -> (\ev -> Result (snd ev) 0 [1] ((take (fst ev) (repeat 0)) ++ [1] ++ (take (r - fst ev - 1) (repeat 0)))) $ minimumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
                  _ -> do
                      let inverse = pinvTol 0.01 m
                      let ev = (1/) . sum . concat . toLists $ inverse
                      let weights1 = concat . toLists $ ((scalar ev) * inverse Numeric.LinearAlgebra.<> (((rows m)><1) (repeat (fromInteger 1))))
                      let weights2 = concat . toLists $ ((scalar ev) * (tr' inverse) Numeric.LinearAlgebra.<> (((cols m)><1) (repeat (fromInteger 1))))
-                     Result ev weights1 weights2
+                     let sd = calcSD (Game "" [] [] m Nothing) weights1 weights2
+                     Result ev sd weights1 weights2
 
         subms :: ([Int], [Int]) -> Matrix Double -> Matrix Double -- remove rows and columns from a matrix
         subms vals m = fromColumns . removeIndexes (fst vals) . toColumns . fromRows . removeIndexes (snd vals) . toRows $ m
@@ -80,15 +81,21 @@ solve (Game x1 x2 x3 m _) = Game x1 x2 x3 m (Just (maximum . map (minimum) . map
         addIndexes def (n:ns) xs = addIndexes def ns (addIndexes def [n] xs)
 
         validate :: Result -> Bool
-        validate (Result _ w1 w2) = (all (>=0) w1) && (all (>=0) w2)
+        validate (Result _ _ w1 w2) = (all (>=0) w1) && (all (>=0) w2)
         tidy :: (([Int],[Int]), Result) -> Result
-        tidy ((r, c), Result ev w1 w2) = Result ev (addIndexes 0 r $ w1) (addIndexes 0 c $ w2)
+        tidy ((r, c), Result ev sd w1 w2) = Result ev sd (addIndexes 0 r $ w1) (addIndexes 0 c $ w2)
 
 game :: Text -> [Text] -> [Text] -> [[Double]] -> Game
 game n c r m = Game n c r (fromLists m) Nothing
 
 calcEV :: Game -> [Double] -> [Double] -> Double
 calcEV (Game _ _ _ mat _) cols rows = (head . head . toLists $ (row (fmap (/ sum rows) rows)) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols)))
+
+calcVar :: Game -> [Double] -> [Double] -> Double
+calcVar g@(Game a b c mat e) cols rows = calcEV (Game a b c (cmap (\x -> (x - calcEV g cols rows)**2) mat) e) cols rows
+
+calcSD :: Game -> [Double] -> [Double] -> Double
+calcSD g cols rows = sqrt $ calcVar g cols rows
 
 type Opt = (Text, Maybe Double)
 data GameComplex = GameComplex {gameCName::Text, attCName::Text, defCName::Text, gameData::[(Opt, Opt, Double)], outcomesC::(Maybe ResultComplex)}
@@ -123,13 +130,12 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
              let g      = game gname rows cols outs
              let cw     = map (maybe (error "???") id . snd) . nub . map fst3 $ both
              let rw     = map (maybe (error "???") id . snd) . nub . map snd3 $ both
-             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result (calcEV g cw rw) cw rw
+             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result (calcEV g cw rw) (calcSD g cw rw) cw rw
 
          [[], c, [], []]      -> do -- typeCheck 1 -> columns unfixed, rows fixed, evaluate columns
              let cols = nub . map (fst . fst3) $ c -- each column option, in the form of name::Text
              let rows = map (\(a, Just b) -> (a,b)) . nub . map snd3 $ c -- each row option, in the form of (name, weight)::(Text, Double)
              let outs = transpose . map (map thd3) . chunksOf (length rows) $ c -- the outcome matrix
-             
              let g = game gname cols (map fst rows) outs -- the game to evaluate evs with
              
              let colStrats = map (pureStrategy . length $ cols) [0..length cols] -- every pure strategy to try against the fixed row strategy
@@ -137,7 +143,8 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
              
              let (cw, ev) = maximumBy (compare `on` snd) . zip colStrats $ evs -- get the optimal pure strategy
              let rw = map snd rows
-             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev cw rw
+             let sd = calcSD g cw rw -- get the standard deviation
+             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev sd cw rw
 
          [[], [], r, []]      -> do -- the same as above, but cols fixed rows unfixed
              let cols = map (\(a, Just b) -> (a,b)) . nub . map fst3 $ r
@@ -150,7 +157,8 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
              
              let cw = map snd cols
              let (rw, ev) = minimumBy (compare `on` snd) . zip rowStrats $ evs -- the defender wants to minimise the ev
-             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev cw rw
+             let sd = calcSD g cw rw
+             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev sd cw rw
 
          [[], [], [], neither]     -> do -- both are unfixed, so we just calculate it as a normal Game
              let cols = nub . map (fst . fst3) $ neither
@@ -169,17 +177,17 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
         pureStrategy :: Int -> Int -> [Double]
         pureStrategy l x = take l ((take (x-1) . repeat $ 0) ++ (1:[0..]))
 
-data ResultComplex = ResultComplex {resCEV::Double, resCAtts::[(Text,Double)], resCDefs::[(Text,Double)]}
+data ResultComplex = ResultComplex {resCEV::Double, resCSD::Double, resCAtts::[(Text,Double)], resCDefs::[(Text,Double)]}
     deriving (Eq, Ord)
 
 instance Show ResultComplex where
-    show (ResultComplex ev atts defs) = "\n EV: " ++ (show ev) ++ "\n Attacker Options: " ++ (show atts) ++ "\n Defender Options: " ++ (show defs)
+    show (ResultComplex ev sd atts defs) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Attacker Options: " ++ (show atts) ++ "\n Defender Options: " ++ (show defs)
 
 resultComplex :: [(Opt, Opt, Double)] -> Result -> ResultComplex
-resultComplex opts (Result ev cw rw) = do
+resultComplex opts (Result ev sd cw rw) = do
     let colnames = nub . map (fst . fst3) $ opts
     let rownames = nub . map (fst . snd3) $ opts
-    ResultComplex ev (zip colnames cw) (zip rownames rw)
+    ResultComplex ev sd (zip colnames cw) (zip rownames rw)
 
 fst3 (x,_,_) = x
 snd3 (_,x,_) = x
