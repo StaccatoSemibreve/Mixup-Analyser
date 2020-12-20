@@ -25,10 +25,10 @@ source-repository head
 
 library
   exposed-modules:
+      Contexts
       Custom
       Evaluate
       Game
-      Helpers
       Parse
   other-modules:
       Paths_mixups
@@ -38,8 +38,10 @@ library
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , comonad
     , containers
     , hmatrix
+    , split
     , text
   default-language: Haskell2010
 
@@ -54,9 +56,11 @@ executable mixups-exe
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , comonad
     , containers
     , hmatrix
     , mixups
+    , split
     , text
   default-language: Haskell2010
 
@@ -72,8 +76,10 @@ test-suite mixups-test
       HsYAML
     , base >=4.7 && <5
     , bytestring
+    , comonad
     , containers
     , hmatrix
     , mixups
+    , split
     , text
   default-language: Haskell2010

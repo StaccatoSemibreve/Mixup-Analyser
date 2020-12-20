@@ -4,14 +4,16 @@
 module Parse
     ( readInstructions -- get every Instruction from run.yaml, so we can know where to start
     , instructionToMixupGroups -- take an Instruction, return all the relevant mixup data from the file it sends us to
-    , Instruction (Instruction, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
+    , Instruction (Instruction, name, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
     , Context -- a lookup table of current game state, v important to track this!
     , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
     , Mixup (Mixup, mixupName) -- a raw mixup
     , MixupGroup (MixupGroup, attacker, defender, mixups) -- a list of all the mixups between a specific attacker and specific defender - usually, [MixupGroup] will be used to represent an entire mixup data file
-    , Option (Option, optionName, optionWeight) -- a specific option for one of the players to use, Maybe including a fixed weight (otherwise, the weight is calculated using Game)
-    , NextMixup (NextMixup) -- the next place to go after this mixup, Maybe listed in the Recontext under next
+    , Option (Option, optionName, optionWeight, require, antirequire) -- a specific option for one of the players to use, Maybe including a fixed weight (otherwise, the weight is calculated using Game)
+    , NextMixup (NextMixup, nextM, nextAtt, nextDef) -- the next place to go after this mixup, Maybe listed in the Recontext under next
     ) where
+
+import Contexts
 
 import Data.YAML
 import Data.Text (Text, unpack)
@@ -31,8 +33,6 @@ instance FromYAML Instruction where
         <*> m .: "score"
         <*> m .: "context"
 
-type Context = [(Text, Integer)]
-
 data Recontext =
     Recontext { colOption::Text
               , rowOption::Text
@@ -45,14 +45,14 @@ instance FromYAML Recontext where
     parseYAML = withMap "Recontext" $ \m -> Recontext
         <$> m .:? "attackerOption"  .!= "None1"
         <*> m .:? "defenderOption"  .!= "None2"
-        <*> m .:? "set"             .!= []
-        <*> m .:? "add"             .!= []
+        <*> m .:? "set"             .!= newContext
+        <*> m .:? "add"             .!= newContext
         <*> m .:? "next"            .!= Nothing
 
 data NextMixup =
-    NextMixup { nextAttacker::Text
-              , nextDefender::Text
-              , mixup::Text
+    NextMixup { nextAtt::Text
+              , nextDef::Text
+              , nextM::Text
     } deriving (Eq, Show)
 
 instance FromYAML NextMixup where
@@ -85,10 +85,10 @@ data Mixup =
 instance FromYAML Mixup where
     parseYAML = withMap "Mixup" $ \m -> Mixup
         <$> m .:    "name"
-        <*> m .:?   "require"           .!= []
-        <*> m .:?   "antirequire"       .!= []
-        <*> m .:?   "attackerOptions"   .!= [Option "None1" [] [] (Just 1)]
-        <*> m .:?   "defenderOptions"   .!= [Option "None2" [] [] (Just 1)]
+        <*> m .:?   "require"           .!= newContext
+        <*> m .:?   "antirequire"       .!= newContext
+        <*> m .:?   "attackerOptions"   .!= [Option "None1" newContext newContext (Just 1)]
+        <*> m .:?   "defenderOptions"   .!= [Option "None2" newContext newContext (Just 1)]
         <*> m .:    "outcomes"
 
 data Option =
@@ -101,8 +101,8 @@ data Option =
 instance FromYAML Option where
     parseYAML = withMap "Option" $ \m -> Option
         <$> m .:    "name"
-        <*> m .:?   "require"       .!= []
-        <*> m .:?   "antirequire"   .!= []
+        <*> m .:?   "require"       .!= newContext
+        <*> m .:?   "antirequire"   .!= newContext
         <*> m .:?   "weight"        .!= Nothing
 
 -- read any yaml into any type, do not export because we only need specific types

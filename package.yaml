@@ -25,7 +25,9 @@ dependencies:
 - HsYAML
 - containers
 - text
+- split
 - bytestring
+- comonad
 
 library:
   source-dirs: src

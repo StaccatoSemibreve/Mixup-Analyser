@@ -1,16 +1,19 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 -- calculates nash equilibriums, does related backend stuff
+-- TODO: ResultComplex, with outcomes tied to option names
 import Game
 -- parses yaml into specific types also stored here
 import Parse
--- manipulates the yaml data into the relevant data trees, evaluates from that
+-- manipulates the yaml data into the relevant data trees, evaluates with a fold (well, a scan) using that
 import Evaluate
 -- contains the specialised functions for converting contexts into scores, updating context states, and checking if a game has ended
 -- TODO: define this at runtime somehow, maybe use hint? idk
 import Custom
 -- the helper functions used by Custom so that it's not also full of things that should never be altered
-import Helpers
+import Contexts
 
 main :: IO ()
 main =  do
@@ -19,8 +22,18 @@ main =  do
 --               game "Strike/Throw (Borked)" ["Strike","Strike"] ["Block", "Yomi"] [[0.3,0.3], [2,2]],
 --               game "Strike/Throw (Antiblock)" ["Strike","Throw"] ["Block", "Yomi", "Antiblock"] [[0.3,1], [2,-1], [1,0.3]],
 --               game "Strike" ["Strike"] ["Block", "Yomi"] [[0.3], [2]],
---               game "Oki (Rook)" ["Strike","Throw","Cmd"] ["Block","Yomi","Jump"] [[0.3,1,1], [2,-1,2], [1,2,-3]]]
+--               game "Oki (Rook)" ["Strike","Throw","Cmd"] ["Block","Yomi","Jump"] [[0.3,1,1], [2,-1,2], [1,2,-3]],
+--               game "weird" ["Strike"] ["Block", "Yomi"] [[0.3],[2]] ]
 --     mapM_ putStrLn . map (show . solve) $ gs
+    
+--     let g = gameComplex "Strike/Throw" [(("Strike", Nothing), ("Block", Just 0.81), 0.3), (("Strike", Nothing), ("Yomi", Just 0.19), 2), (("Strike", Nothing), ("Superblock", Just 0), 1),
+--                                        (("Throw", Nothing), ("Block", Just 0.81), 1), (("Throw", Nothing), ("Yomi", Just 0.19), -1), (("Throw", Nothing), ("Superblock", Just 0), -1)]
+--     let g = gameComplex "Strike/Item" [(("Coin", Just 0.75), ("Block", Nothing), 0.3), (("Coin", Just 0.75), ("Yomi", Nothing), 1),
+--                                        (("Cherry", Just 0.25), ("Block", Nothing), 1), (("Cherry", Just 0.25), ("Yomi", Nothing), -1)]
+--     
+--     let gsolved = solveComplex g
+--     putStrLn . show $ gsolved
+--     putStrLn . show $ gssolved
     
     -- current test case from Evaluate
     test

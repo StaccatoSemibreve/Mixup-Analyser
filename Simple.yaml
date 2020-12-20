@@ -6,8 +6,8 @@
         -
             name: Punish
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -19,13 +19,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -33,9 +33,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -43,8 +43,8 @@
         -
             name: PunishCorner
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -56,13 +56,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -70,9 +70,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -80,8 +80,8 @@
         -
             name: PunishFromCorner
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -93,13 +93,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -107,9 +107,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -117,15 +117,13 @@
         -
             name: Mix
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
-                    weight: 0.3
                 -
                     name: FThrow
-                    weight: 0.6
                 -
                     name: BThrow
                 -
@@ -138,27 +136,27 @@
                 -
                     name: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -167,7 +165,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -176,9 +174,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -187,11 +185,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -200,9 +198,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -211,9 +209,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -222,11 +220,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -241,11 +239,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                     next:
                         attacker: A
                         defender: B
@@ -253,8 +251,8 @@
         -
             name: MixCorner
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -272,29 +270,29 @@
                 -
                     name: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -303,7 +301,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -312,9 +310,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -323,11 +321,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -336,9 +334,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -347,9 +345,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -358,11 +356,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -377,11 +375,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                     next:
                         attacker: A
                         defender: B
@@ -389,8 +387,8 @@
         -
             name: MixFromCorner
             antirequire:
-                - [AHealth, 0]
-                - [BHealth, 0]
+                AHealth: 0
+                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -408,29 +406,29 @@
                 -
                     name: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [BChip, 0]
+                        BChip: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -439,7 +437,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -448,9 +446,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -459,11 +457,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -472,9 +470,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -483,9 +481,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -494,11 +492,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                     next:
                         attacker: B
                         defender: A
@@ -513,11 +511,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [BSuper, 1]
+                        BSuper: 1
                     set:
-                        - [BSuper, 0]
+                        BSuper: 0
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                     next:
                         attacker: A
                         defender: B
@@ -530,8 +528,8 @@
         -
             name: Punish
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -543,13 +541,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -557,9 +555,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -567,8 +565,8 @@
         -
             name: PunishCorner
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -580,13 +578,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -594,9 +592,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -604,8 +602,8 @@
         -
             name: PunishFromCorner
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -617,13 +615,13 @@
                 -
                     attackerOption: Strike
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: FThrow
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -631,9 +629,9 @@
                 -
                     attackerOption: BThrow
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -641,8 +639,8 @@
         -
             name: Mix
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -660,27 +658,27 @@
                 -
                     name: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -689,7 +687,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -698,9 +696,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -709,11 +707,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -722,9 +720,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -733,9 +731,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -744,11 +742,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -763,11 +761,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                     next:
                         attacker: B
                         defender: A
@@ -775,8 +773,8 @@
         -
             name: MixCorner
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -794,29 +792,29 @@
                 -
                     name: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -825,7 +823,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -834,9 +832,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -845,11 +843,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -858,9 +856,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -869,9 +867,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -880,11 +878,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -899,11 +897,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                     next:
                         attacker: B
                         defender: A
@@ -911,8 +909,8 @@
         -
             name: MixFromCorner
             antirequire:
-                - [BHealth, 0]
-                - [AHealth, 0]
+                BHealth: 0
+                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -930,29 +928,29 @@
                 -
                     name: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
             outcomes:
                 -
                     attackerOption: Strike
                     defenderOption: Block
                     add:
-                        - [AChip, 1]
+                        AChip: 1
                 -
                     attackerOption: Strike
                     defenderOption: Yomi
                     set:
-                        - [AChip, 0]
+                        AChip: 0
                     add:
-                        - [AHealth, -2]
+                        AHealth: -2
                 -
                     attackerOption: Strike
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -961,7 +959,7 @@
                     attackerOption: FThrow
                     defenderOption: Block
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -970,9 +968,9 @@
                     attackerOption: FThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -981,11 +979,11 @@
                     attackerOption: FThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -994,9 +992,9 @@
                     attackerOption: BThrow
                     defenderOption: Block
                     set:
-                        - [BSuper, 1]
+                        BSuper: 1
                     add:
-                        - [AHealth, -1]
+                        AHealth: -1
                     next:
                         attacker: B
                         defender: A
@@ -1005,9 +1003,9 @@
                     attackerOption: BThrow
                     defenderOption: Yomi
                     set:
-                        - [ASuper, 1]
+                        ASuper: 1
                     add:
-                        - [BHealth, -1]
+                        BHealth: -1
                     next:
                         attacker: A
                         defender: B
@@ -1016,11 +1014,11 @@
                     attackerOption: BThrow
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BHealth, -2]
+                        BHealth: -2
                     next:
                         attacker: A
                         defender: B
@@ -1035,11 +1033,11 @@
                     attackerOption: Block
                     defenderOption: Super
                     require:
-                        - [ASuper, 1]
+                        ASuper: 1
                     set:
-                        - [ASuper, 0]
+                        ASuper: 0
                     add:
-                        - [BChip, 1]
+                        BChip: 1
                     next:
                         attacker: B
                         defender: A

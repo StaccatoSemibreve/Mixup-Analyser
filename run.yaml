@@ -7,10 +7,10 @@
         - Win
     context:
         set:
-            - [AHealth, 1]
-            - [AChip, 2]
-            - [BHealth, 2]
-            - [BSuper, 1]
+            AHealth: 2
+            AChip: 2
+            BHealth: 1
+            BSuper: 1
         next:
             attacker: A
             defender: B
@@ -24,10 +24,10 @@
         - Win
     context:
         set:
-            - [AHealth, 1]
-            - [AChip, 2]
-            - [BHealth, 1]
-            - [BSuper, 1]
+            AHealth: 1
+            AChip: 2
+            BHealth: 1
+            BSuper: 1
         next:
             attacker: A
             defender: B
