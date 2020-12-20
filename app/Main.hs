@@ -26,14 +26,13 @@ main =  do
 --               game "weird" ["Strike"] ["Block", "Yomi"] [[0.3],[2]] ]
 --     mapM_ putStrLn . map (show . solve) $ gs
     
---     let g = gameComplex "Strike/Throw" [(("Strike", Nothing), ("Block", Just 0.81), 0.3), (("Strike", Nothing), ("Yomi", Just 0.19), 2), (("Strike", Nothing), ("Superblock", Just 0), 1),
---                                        (("Throw", Nothing), ("Block", Just 0.81), 1), (("Throw", Nothing), ("Yomi", Just 0.19), -1), (("Throw", Nothing), ("Superblock", Just 0), -1)]
+--     let g = gameComplex "Strike/Throw" "" "" [(("Strike", Nothing), ("Block", Just 0.81), 0.3), (("Strike", Nothing), ("Yomi", Just 0.19), 2), (("Strike", Nothing), ("Superblock", Just 0), 1)
+--                                              ,(("Throw", Nothing), ("Block", Just 0.81), 1), (("Throw", Nothing), ("Yomi", Just 0.19), -1), (("Throw", Nothing), ("Superblock", Just 0), -1)]
 --     let g = gameComplex "Strike/Item" [(("Coin", Just 0.75), ("Block", Nothing), 0.3), (("Coin", Just 0.75), ("Yomi", Nothing), 1),
 --                                        (("Cherry", Just 0.25), ("Block", Nothing), 1), (("Cherry", Just 0.25), ("Yomi", Nothing), -1)]
 --     
 --     let gsolved = solveComplex g
 --     putStrLn . show $ gsolved
---     putStrLn . show $ gssolved
     
     -- current test case from Evaluate
     test

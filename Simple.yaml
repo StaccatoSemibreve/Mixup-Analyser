@@ -5,9 +5,6 @@
     mixups:
         -
             name: Punish
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -42,9 +39,6 @@
                         mixup: Mix
         -
             name: PunishCorner
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -79,9 +73,6 @@
                         mixup: MixFromCorner
         -
             name: PunishFromCorner
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -116,18 +107,19 @@
                         mixup: MixCorner
         -
             name: Mix
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
+                    weight: 0.5
                 -
                     name: FThrow
+                    weight: 0.3
                 -
                     name: BThrow
+                    weight: 0.1
                 -
                     name: Block
+                    weight: 0.1
             defenderOptions:
                 -
                     name: Block
@@ -250,9 +242,6 @@
                         mixup: Punish
         -
             name: MixCorner
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -386,9 +375,6 @@
                         mixup: PunishCorner
         -
             name: MixFromCorner
-            antirequire:
-                AHealth: 0
-                BHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -527,9 +513,6 @@
     mixups:
         -
             name: Punish
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -564,9 +547,6 @@
                         mixup: Mix
         -
             name: PunishCorner
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -601,9 +581,6 @@
                         mixup: MixFromCorner
         -
             name: PunishFromCorner
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -638,9 +615,6 @@
                         mixup: MixCorner
         -
             name: Mix
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -772,9 +746,6 @@
                         mixup: Punish
         -
             name: MixCorner
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike
@@ -908,9 +879,6 @@
                         mixup: PunishCorner
         -
             name: MixFromCorner
-            antirequire:
-                BHealth: 0
-                AHealth: 0
             attackerOptions:
                 -
                     name: Strike

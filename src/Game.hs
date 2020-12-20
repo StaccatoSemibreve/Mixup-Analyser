@@ -88,7 +88,7 @@ game :: Text -> [Text] -> [Text] -> [[Double]] -> Game
 game n c r m = Game n c r (fromLists m) Nothing
 
 calcEV :: Game -> [Double] -> [Double] -> Double
-calcEV (Game _ _ _ mat _) cols rows = head . head . toLists $ (row rows) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col cols)
+calcEV (Game _ _ _ mat _) cols rows = (head . head . toLists $ (row (fmap (/ sum rows) rows)) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols)))
 
 type Opt = (Text, Maybe Double)
 data GameComplex = GameComplex {gameCName::Text, attCName::Text, defCName::Text, gameData::[(Opt, Opt, Double)], outcomesC::(Maybe ResultComplex)}
@@ -115,7 +115,7 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
     let evs = map (\i -> filter (\outcome -> typeCheck outcome == i) $ gdata) [0..3]
     
     case evs of
-         [both, [], [], []]  -> do
+         [both, [], [], []]  -> do -- both are fixed, so we just copy the weights into 
              let rows = nub . map (fst . fst3) $ both
              let cols = nub . map (fst . snd3) $ both
              let outs = map (map thd3) . transpose . chunksOf (length rows) $ both
@@ -125,38 +125,34 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
              let rw     = map (maybe (error "???") id . snd) . nub . map snd3 $ both
              GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result (calcEV g cw rw) cw rw
 
-         [[], col, [], []]      -> do -- whoops col and row are the wrong way round let's just pretend it's fine, the code works if i swap the weights at the end at least
-             let rows = nub . map (fst . fst3) $ col -- each column option, in the form of name::Text
-             let cols = map (\(a, Just b) -> (a,b)) . nub . map snd3 $ col -- each row option, in the form of (name, weight)::(Text, Double)
-             let outs = map (map thd3) . chunksOf (length rows) $ col -- the outcome matrix, also to zip per row
-             let colsWeird = zip cols outs
-             let gs = map (\(col, outs) -> solve $ game gname rows [fst col] [outs]) colsWeird -- solved games
+         [[], c, [], []]      -> do -- typeCheck 1 -> columns unfixed, rows fixed, evaluate columns
+             let cols = nub . map (fst . fst3) $ c -- each column option, in the form of name::Text
+             let rows = map (\(a, Just b) -> (a,b)) . nub . map snd3 $ c -- each row option, in the form of (name, weight)::(Text, Double)
+             let outs = transpose . map (map thd3) . chunksOf (length rows) $ c -- the outcome matrix
              
-             let g = game gname rows (map fst cols) outs
-             let rowsNew = map (weightsCols . fromMaybe (error "???") . outcomes) $ gs
-             let rowsEvs = map ((flip (calcEV g)) (map snd cols)) rowsNew
+             let g = game gname cols (map fst rows) outs -- the game to evaluate evs with
              
-             let (rw, ev) = maximumBy (compare `on` snd) . zip rowsNew $ rowsEvs
-             let cw = map snd cols
-             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev rw cw
-
-         [[], [], row, []]      -> do
-             let rows = map (\(a, Just b) -> (a,b)) . nub . map fst3 $ row -- each row option, in the form of (name, weight)::(Text, Double)
-             let cols = nub . map (fst . snd3) $ row -- each column option, in the form of name::Text
-             let outsT = map (map thd3) . chunksOf (length rows) $ row -- the outcome matrix's transpose, because we need to zip it per column
-             let rowsWeird = zip rows outsT
-             let gs = map (\(row, outs) -> solve $ game gname [fst row] cols (transpose [outs])) rowsWeird -- solved games
+             let colStrats = map (pureStrategy . length $ cols) [0..length cols] -- every pure strategy to try against the fixed row strategy
+             let evs = map (\strat -> calcEV g strat (map snd rows)) colStrats -- every ev
              
-             let outs = transpose outsT
-             let g = game gname cols (map fst rows) outs
-             let colsNew = map (weightsRows . fromMaybe (error "???") . outcomes) $ gs
-             let colsEvs = map (calcEV g (map snd rows)) colsNew
-             
-             let (cw, ev) = minimumBy (compare `on` snd) . zip colsNew $ colsEvs
+             let (cw, ev) = maximumBy (compare `on` snd) . zip colStrats $ evs -- get the optimal pure strategy
              let rw = map snd rows
-             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev rw cw
+             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev cw rw
 
-         [[], [], [], neither]     -> do
+         [[], [], r, []]      -> do -- the same as above, but cols fixed rows unfixed
+             let cols = map (\(a, Just b) -> (a,b)) . nub . map fst3 $ r
+             let rows = nub . map (fst . snd3) $ r
+             let outs = transpose . map (map thd3) . chunksOf (length rows) $ r
+             let g = game gname (map fst cols) rows outs
+             
+             let rowStrats = map (pureStrategy . length $ rows) [0..length rows]
+             let evs = map (\strat -> calcEV g (map snd cols) strat) rowStrats
+             
+             let cw = map snd cols
+             let (rw, ev) = minimumBy (compare `on` snd) . zip rowStrats $ evs -- the defender wants to minimise the ev
+             GameComplex gname attname defname gdata . Just . resultComplex gdata $ Result ev cw rw
+
+         [[], [], [], neither]     -> do -- both are unfixed, so we just calculate it as a normal Game
              let cols = nub . map (fst . fst3) $ neither
              let rows = nub . map (fst . snd3) $ neither
              let outs = map (map thd3) . transpose . chunksOf (length rows) $ neither
@@ -165,10 +161,13 @@ solveComplex gc@(GameComplex gname attname defname gdata _) = do
              let res    = maybe (error "???") id . outcomes $ g
              GameComplex gname attname defname gdata . Just . resultComplex gdata $ res
              
-         _                      -> error "both fixed and unfixed options for a single player"
+         _                      -> error "both fixed and unfixed options for a single player" -- no. don't. this makes no sense!!! the only reason i can even think you'd want to try is equivalent to just nesting in another mixup, so just do that.
     
     where
         typeCheck ((_,c), (_,r), _) = (fromEnum . isNothing $ c) + ((2*) . fromEnum . isNothing $ r)
+        
+        pureStrategy :: Int -> Int -> [Double]
+        pureStrategy l x = take l ((take (x-1) . repeat $ 0) ++ (1:[0..]))
 
 data ResultComplex = ResultComplex {resCEV::Double, resCAtts::[(Text,Double)], resCDefs::[(Text,Double)]}
     deriving (Eq, Ord)
