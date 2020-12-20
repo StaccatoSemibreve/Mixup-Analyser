@@ -3,7 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Evaluate
-    ( test -- test scenario
+    ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
+    , treeScoreFolder -- the function to use in foldTree when folding across scored outcomes
     ) where
 
 import Contexts
@@ -16,7 +17,6 @@ import Data.Maybe
 import Data.Function
 import Data.Text (Text)
 import Data.Tree
-import Control.Comonad
 
 -- a Recontext with Maybe specified weights, because we need those!
 data Outcome =
@@ -72,7 +72,7 @@ recontextMix mgroups con r = (\newcon -> (newcon, if endCheck newcon then Nothin
 
 -- take the mixup data, the mixup name, the current context, and the list of outcomes - return a Tree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate), also carry through the NextMixup metadata for readability
 outcomesToContextTree :: [MixupGroup] -> Instruction -> TreeContext
-outcomesToContextTree mgroup (Instruction _ _ _ out) = unfoldTree unfolder (Outcome newContext out Nothing Nothing)
+outcomesToContextTree mgroup (Instruction _ _ _ _ out) = unfoldTree unfolder (Outcome newContext out Nothing Nothing)
     where
         unfolder :: Outcome -> ((Maybe NextMixup, Opt, Opt, Context), [Outcome])
         unfolder o = do
@@ -80,9 +80,9 @@ outcomesToContextTree mgroup (Instruction _ _ _ out) = unfoldTree unfolder (Outc
             ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
 -- the fold function should first convert the summary values (of type (Opt, Opt, GameComplex)) to their EVs (Opt, Opt, Double), then turn those EVs into an (Opt, Opt, GameComplex {gameCName::Text, gameData::[((Text, Maybe Double), (Text, Maybe Double), Double)], outcomesC::(Maybe Result)}), also carry through the NextMixup metadata for readability
-treeScoreFolder :: (Maybe NextMixup, Opt, Opt, Context) -> [(Opt, Opt, GameComplex)] -> (Opt, Opt, GameComplex)
-treeScoreFolder (mnext,a,b,c) [] = (a,b, solveComplex $ gameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)]) -- TODO: carry player names through
-treeScoreFolder (mnext,a,b,_) subgames = do
+treeScoreFolder :: (Context -> Double) -> (Maybe NextMixup, Opt, Opt, Context) -> [(Opt, Opt, GameComplex)] -> (Opt, Opt, GameComplex)
+treeScoreFolder score (mnext,a,b,c) [] = (a,b, solveComplex $ gameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)]) -- TODO: carry player names through
+treeScoreFolder score (mnext,a,b,_) subgames = do
     let evs = map (\(o1, o2, g) -> (o1, o2, resCEV . fromMaybe (error "???") . outcomesC $ g)) subgames
     (a,b, solveComplex $ gameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs)
     
@@ -93,15 +93,3 @@ scanTree f ~(Node r l) = Node r $ map (scan' r) l where
 fst3 (x,_,_) = x
 snd3 (_,x,_) = x
 thd3 (_,_,x) = x
-
-test :: IO ()
-test = do
-    instructions <- readInstructions
-    mgroups <- mapM instructionToMixupGroups instructions
-    let contexttrees = map (\(mgroup,instr) -> outcomesToContextTree mgroup instr) . zip mgroups $ instructions
-    let gametrees = map (extend $ foldTree treeScoreFolder) contexttrees
---     mapM_ (putStrLn . show) mgroups
---     mapM_ (putStrLn . show . outcomesC . thd3 . foldTree treeScoreFolder) $ contexttrees
-    mapM_ (putStrLn . drawTree . fmap show) gametrees
---     mapM_ (putStrLn . show . (\x -> compareContextNone x newContext) . thd3 . head . flatten) $ contexttrees
---     mapM_ (putStrLn . drawTree . fmap show) $ contexttrees

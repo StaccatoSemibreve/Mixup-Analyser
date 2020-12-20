@@ -3,17 +3,20 @@
 module Main where
 
 -- calculates nash equilibriums, does related backend stuff
--- TODO: ResultComplex, with outcomes tied to option names
 import Game
 -- parses yaml into specific types also stored here
 import Parse
 -- manipulates the yaml data into the relevant data trees, evaluates with a fold (well, a scan) using that
 import Evaluate
 -- contains the specialised functions for converting contexts into scores, updating context states, and checking if a game has ended
--- TODO: define this at runtime somehow, maybe use hint? idk
+-- TODO: define this at runtime somehow, maybe use hint? idk! TODO then: take scores from Instructions to select score functions
 import Custom
 -- the helper functions used by Custom so that it's not also full of things that should never be altered
 import Contexts
+
+import Data.Text (unpack)
+import Data.Tree
+import Control.Comonad
 
 main :: IO ()
 main =  do
@@ -34,7 +37,11 @@ main =  do
 --     let gsolved = solveComplex g
 --     putStrLn . show $ gsolved
     
-    -- current test case from Evaluate
-    test
+    instructions <- readInstructions
+    mgroups <- mapM instructionToMixupGroups instructions
+    let contexttrees = map (\(mgroup,instr) -> (outcomesToContextTree mgroup instr, instr)) . zip mgroups $ instructions
+    let gametrees = map (\(tree,instr) -> (extend (foldTree $ treeScoreFolder scoreWin) tree, instr)) contexttrees
+    mapM_ (\(tree,instr) -> writeFile (unpack . outpath $ instr) . drawTree . fmap show $ tree) gametrees
+    
     -- make sure i have something at the end so the do doesn't complain
     putStrLn "hlello wrorled"

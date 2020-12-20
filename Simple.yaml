@@ -110,16 +110,12 @@
             attackerOptions:
                 -
                     name: Strike
-                    weight: 0.5
                 -
                     name: FThrow
-                    weight: 0.3
                 -
                     name: BThrow
-                    weight: 0.1
                 -
                     name: Block
-                    weight: 0.1
             defenderOptions:
                 -
                     name: Block

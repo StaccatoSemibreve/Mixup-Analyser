@@ -5,7 +5,7 @@
 module Custom
     ( contextCheck
     , endCheck
-    , score
+    , scoreWin
     ) where
 
 import Contexts
@@ -30,9 +30,6 @@ contextCheck = chipCheck "BHealth" "BChip" "" . chipCheck "AHealth" "AChip" ""
 
 endCheck :: Context -> Bool
 endCheck context = or [getValue "AHealth" context <= 0, getValue "BHealth" context <= 0]
-
-score :: Context -> Double
-score = scoreWin
 
 -- scoreHealthDifferential :: Context -> Double
 -- scoreHealthDifferential context = 

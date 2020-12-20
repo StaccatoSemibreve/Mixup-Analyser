@@ -1,6 +1,7 @@
 -
     name: Simple
     path: Simple.yaml
+    outpath: Simple.txt
     score:
         - DamageDealt
         - DamageDifference
@@ -18,6 +19,7 @@
 -
     name: Simple2
     path: Simple.yaml
+    outpath: Simple2.txt
     score:
         - DamageDealt
         - DamageDifference

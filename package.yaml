@@ -21,13 +21,13 @@ description:         Please see the README on GitHub at <https://github.com/Stac
 
 dependencies:
 - base >= 4.7 && < 5
-- hmatrix
-- HsYAML
-- containers
 - text
 - split
-- bytestring
 - comonad
+- containers
+- hmatrix
+- HsYAML
+- bytestring
 
 library:
   source-dirs: src
