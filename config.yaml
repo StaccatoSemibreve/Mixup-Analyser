@@ -1,0 +1,64 @@
+-
+    name: Simple
+    path: Simple.yaml
+    score:
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamageDiff.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleWin.txt
+    context:
+        set:
+            AHealth: 2
+            AChip: 2
+            BHealth: 1
+            BSuper: 1
+        next:
+            attacker: A
+            defender: B
+            mixup: Mix
+-
+    name: Simple2
+    path: Simple.yaml
+    score:
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage2.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamageDiff2.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleWin2.txt
+    context:
+        set:
+            AHealth: 1
+            AChip: 2
+            BHealth: 1
+            BSuper: 1
+        next:
+            attacker: A
+            defender: B
+            mixup: Mix
