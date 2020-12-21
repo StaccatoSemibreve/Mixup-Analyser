@@ -52,16 +52,13 @@ main =  do
     let endLookup = zip (map endName scoredata) parsedEnds
     let updaterLookup = zip (map updateName scoredata) parsedUpdaters
     let printerLookup = zip (map outType scoredata) parsedPrinters
-        
+    
     
     let roots = concat . map treeRoots . zip mgroups $ instructions
     let contexttrees = map (growTree endLookup updaterLookup) roots
     let gametrees = map (gamifyTree scoreLookup) contexttrees
     
     mapM_ (\(tree,sdata) -> writeFile ("out/" ++ (unpack . outPath $ sdata)) . (getPrinter printerLookup . outType $ sdata) $ tree) gametrees
-    
-    -- make sure i have something at the end so the do doesn't complain
-    putStrLn "hlello wrorled"
     where
         parseScore :: ScoreData -> IO (Context -> Double)
         parseScore sdata = fmap (either (\e -> error . show $ e) id) . score . unpack . scoreName $ sdata
