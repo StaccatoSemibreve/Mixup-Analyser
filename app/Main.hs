@@ -8,13 +8,13 @@ import Game
 import Parse
 -- manipulates the yaml data into the relevant data trees, evaluates with a fold (well, a scan) using that
 import Evaluate
--- contains the specialised functions for converting contexts into scores, updating context states, and checking if a game has ended
--- TODO: define this at runtime somehow, maybe use hint? idk! TODO then: take scores from Instructions to select score functions
-import Custom
 -- the helper functions used by Custom so that it's not also full of things that should never be altered
 import Contexts
+-- handles the score, endstate check, and context updating functions, defined at runtime
+import Score
 
-import Data.Text (unpack)
+import Data.Maybe
+import Data.Text (Text, unpack)
 import Data.Tree
 import Control.Comonad
 
@@ -39,29 +39,51 @@ main =  do
     
     instructions <- readInstructions
     mgroups <- mapM instructionToMixupGroups instructions
-    let scoredata = map scores instructions
-    let contexttrees = map (\(mgroup,instr) -> (outcomesToContextTree mgroup instr, scores instr)) . zip mgroups $ instructions
-    let gametrees = concat . map (\(tree,scoreDatas) -> map (\scoreData -> (extend (foldTree $ treeScoreFolder scoreWin) tree, scoreData)) scoreDatas) $ contexttrees
-    mapM_ (\(tree,scoreData) -> writeFile ("out/" ++ (unpack . outPath $ scoreData)) . drawTree . fmap prettyshownode $ tree) gametrees
+    
+    
+    let scoredata = concat . map scores $ instructions
+    
+    parsedScores <- mapM parseScore scoredata
+    parsedEnds <- mapM parseEnd scoredata
+    parsedUpdaters <- mapM parseUpdate scoredata
+    parsedPrinters <- mapM parsePrinter scoredata
+    
+    let scoreLookup = zip (map scoreName scoredata) parsedScores
+    let endLookup = zip (map endName scoredata) parsedEnds
+    let updaterLookup = zip (map updateName scoredata) parsedUpdaters
+    let printerLookup = zip (map outType scoredata) parsedPrinters
+        
+    
+    let roots = concat . map treeRoots . zip mgroups $ instructions
+    let contexttrees = map (growTree endLookup updaterLookup) roots
+    let gametrees = map (gamifyTree scoreLookup) contexttrees
+    
+    mapM_ (\(tree,sdata) -> writeFile ("out/" ++ (unpack . outPath $ sdata)) . (getPrinter printerLookup . outType $ sdata) $ tree) gametrees
     
     -- make sure i have something at the end so the do doesn't complain
     putStrLn "hlello wrorled"
     where
-        prettyshownode (c, ("None1", _), ("None2", _), g) = (prettyshowgame g c)
-        prettyshownode (c, (o1, _), ("None2", _), g) = (unpack o1) ++ ": " ++ (prettyshowgame g c)
-        prettyshownode (c, ("None1", _), (o2, _), g) = (unpack o2) ++ ": " ++ (prettyshowgame g c)
-        prettyshownode (c, (o1, _), (o2, _), g) = (unpack o1) ++ " + " ++ (unpack o2) ++ ": " ++ (prettyshowgame g c)
+        parseScore :: ScoreData -> IO (Context -> Double)
+        parseScore sdata = fmap (either (\e -> error . show $ e) id) . score . unpack . scoreName $ sdata
+        parseEnd :: ScoreData -> IO (Context -> Bool)
+        parseEnd sdata = fmap (either (\e -> error . show $ e) id) . end . unpack . endName $ sdata
+        parseUpdate :: ScoreData -> IO (Context -> Context)
+        parseUpdate sdata = fmap (either (\e -> error . show $ e) id) . update . unpack . updateName $ sdata
+        parsePrinter :: ScoreData -> IO (TreeGame -> String)
+        parsePrinter sdata = fmap (either (\e -> error . show $ e) id) . printer . unpack . outType $ sdata
         
-        prettyshowgame (GameComplex "" _ _ gdata (Just gout)) c = "\n" ++ (prettyshowcontext c) ++ prettyshowres gout
-        prettyshowgame (GameComplex gname "" "" gdata (Just gout)) c = (unpack gname) ++ "\n" ++ (prettyshowcontext c) ++ "\n" ++ (prettyshowres gout)
-        prettyshowgame (GameComplex gname attname defname gdata (Just gout)) c = (unpack gname) ++ "\n" ++ (prettyshowcontext c) ++ "\n" ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")" ++ (prettyshowres gout)
+        getScore :: [(Text, Context -> Double)] -> Text -> (Context -> Double)
+        getScore fs f = fromMaybe (error $ "tried to get a nonexistent score: " ++ (unpack f)) . lookup f $ fs
+        getEnd :: [(Text, Context -> Bool)] -> Text -> (Context -> Bool)
+        getEnd fs f = fromMaybe (error $ "tried to get a nonexistent endstate: " ++ (unpack f)) . lookup f $ fs
+        getUpdater :: [(Text, Context -> Context)] -> Text -> (Context -> Context)
+        getUpdater fs f = fromMaybe (error $ "tried to get a nonexistent updater: " ++ (unpack f)) . lookup f $ fs
+        getPrinter :: [(Text, TreeGame -> String)] -> Text -> (TreeGame -> String)
+        getPrinter fs f = fromMaybe (error $ "tried to get a nonexistent printer: " ++ (unpack f)) . lookup f $ fs
         
-        prettyshowcontext c = " Context: " ++ show c
-        
-        prettyshowres (ResultComplex ev sd [_] [_]) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd)
-        prettyshowres (ResultComplex ev sd [_] defs) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Defender Options: " ++ (prettyshowouts defs)
-        prettyshowres (ResultComplex ev sd atts [_]) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Attacker Options: " ++ (prettyshowouts atts)
-        prettyshowres (ResultComplex ev sd atts defs) = "\n EV: " ++ (show ev) ++ "\n SD: " ++ (show sd) ++ "\n Attacker Options: " ++ (prettyshowouts atts) ++ "\n Defender Options: " ++ (prettyshowouts defs)
-        
-        prettyshowouts outs = (\l -> foldl (\a b -> a ++ " - " ++ b) (head l) (tail l)) . map prettyshowpair $ outs
-        prettyshowpair (opt, val) = (unpack opt) ++ ": " ++ (show val)
+        treeRoots :: ([MixupGroup], Instruction) -> [([MixupGroup], Instruction, ScoreData)]
+        treeRoots (mgroup, instr) = map (\s -> (mgroup, instr, s)) . scores $ instr
+        growTree :: [(Text, Context -> Bool)] -> [(Text, Context -> Context)] -> ([MixupGroup], Instruction, ScoreData) -> (TreeContext, Instruction, ScoreData)
+        growTree fs1 fs2 (mgroup, instr, sdata) = (outcomesToContextTree mgroup (getEnd fs1 . endName $ sdata) (getUpdater fs2 . updateName $ sdata) instr, instr, sdata)
+        gamifyTree :: [(Text, Context -> Double)] -> (TreeContext, Instruction, ScoreData) -> (TreeGame, ScoreData)
+        gamifyTree fs (tree, instr, sdata) = (extend (foldTree $ treeScoreFolder (getScore fs . scoreName $ sdata)) tree, sdata)

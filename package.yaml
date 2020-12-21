@@ -28,6 +28,7 @@ dependencies:
 - hmatrix
 - HsYAML
 - bytestring
+- hint
 
 library:
   source-dirs: src

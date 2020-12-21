@@ -4,7 +4,7 @@
 module Parse
     ( readInstructions -- get every Instruction from run.yaml, so we can know where to start
     , instructionToMixupGroups -- take an Instruction, return all the relevant mixup data from the file it sends us to
-    , ScoreData (ScoreData, scoreName, endName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
+    , ScoreData (ScoreData, scoreName, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
     , Instruction (Instruction, name, scores, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
     , Context -- a lookup table of current game state, v important to track this!
     , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
@@ -19,10 +19,12 @@ import Contexts
 import Data.YAML
 import Data.Text (Text, unpack)
 import qualified Data.ByteString.Lazy as B
+import qualified Data.Map as Map
 
 data ScoreData =
     ScoreData { scoreName::Text
               , endName::Text
+              , updateName::Text
               , outType::Text
               , outPath::Text
     } deriving (Eq, Show)
@@ -31,6 +33,7 @@ instance FromYAML ScoreData where
     parseYAML = withMap "ScoreData" $ \m -> ScoreData
         <$> m .:    "name"
         <*> m .:    "endstate"
+        <*> m .:    "updater"
         <*> m .:    "format"
         <*> m .:    "path"
 

@@ -26,10 +26,10 @@ source-repository head
 library
   exposed-modules:
       Contexts
-      Custom
       Evaluate
       Game
       Parse
+      Score
   other-modules:
       Paths_mixups
   hs-source-dirs:
@@ -40,6 +40,7 @@ library
     , bytestring
     , comonad
     , containers
+    , hint
     , hmatrix
     , split
     , text
@@ -58,6 +59,7 @@ executable mixups-exe
     , bytestring
     , comonad
     , containers
+    , hint
     , hmatrix
     , mixups
     , split
@@ -78,6 +80,7 @@ test-suite mixups-test
     , bytestring
     , comonad
     , containers
+    , hint
     , hmatrix
     , mixups
     , split

@@ -5,12 +5,13 @@
 module Evaluate
     ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
     , treeScoreFolder -- the function to use in foldTree when folding across scored outcomes
+    , TreeContext
+    , TreeGame
     ) where
 
 import Contexts
 import Parse
 import Game
-import Custom
 
 import Data.List
 import Data.Maybe
@@ -34,6 +35,7 @@ data MixupFiltered =
 
 type Opt = (Text, Maybe Double)
 type TreeContext = Tree (Maybe NextMixup, Opt, Opt, Context)
+type TreeGame = Tree (Context, Opt, Opt, GameComplex)
 type TreeScore = Tree (Opt, Opt, Double)
 
 -- take a Mixup, filter it or just give a context if it would be empty
@@ -62,8 +64,8 @@ mixupFilter context Nothing = Left ("", context)
 
 
 -- apply a Recontext and return a pair of the resulting Context and Maybe, if there was a next in the Recontext, the next Mixup, also carry through the NextMixup metadata for readability
-recontextMix :: [MixupGroup] -> Context -> Recontext -> (Context, Maybe Mixup, Maybe NextMixup)
-recontextMix mgroups con r = (\newcon -> (newcon, if endCheck newcon then Nothing else mixupNext mgroups . next $ r, next r)) . contextCheck . addset (set r) (add r) $ con
+recontextMix :: [MixupGroup] -> (Context -> Bool) -> (Context -> Context) -> Context -> Recontext -> (Context, Maybe Mixup, Maybe NextMixup)
+recontextMix mgroups endCheck contextUpdate con r = (\newcon -> (newcon, if endCheck newcon then Nothing else mixupNext mgroups . next $ r, next r)) . contextUpdate . addset (set r) (add r) $ con
     where
 --         use a Maybe NextMixup to get a Maybe Mixup
         mixupNext :: [MixupGroup] -> Maybe NextMixup -> Maybe Mixup
@@ -71,12 +73,12 @@ recontextMix mgroups con r = (\newcon -> (newcon, if endCheck newcon then Nothin
         mixupNext _ Nothing = Nothing
 
 -- take the mixup data, the mixup name, the current context, and the list of outcomes - return a Tree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate), also carry through the NextMixup metadata for readability
-outcomesToContextTree :: [MixupGroup] -> Instruction -> TreeContext
-outcomesToContextTree mgroup (Instruction _ _ _ out) = unfoldTree unfolder (Outcome newContext out Nothing Nothing)
+outcomesToContextTree :: [MixupGroup] -> (Context -> Bool) -> (Context -> Context) -> Instruction -> TreeContext
+outcomesToContextTree mgroup f1 f2 (Instruction _ _ _ out) = unfoldTree unfolder (Outcome newContext out Nothing Nothing)
     where
         unfolder :: Outcome -> ((Maybe NextMixup, Opt, Opt, Context), [Outcome])
         unfolder o = do
-            let (newcontext, mixmaybe, mnext) = recontextMix mgroup (startContext o) (result o)
+            let (newcontext, mixmaybe, mnext) = recontextMix mgroup f1 f2 (startContext o) (result o)
             ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
 -- the fold function should first convert the summary values (of type (Opt, Opt, GameComplex)) to their EVs (Opt, Opt, Double), then turn those EVs into an (Opt, Opt, GameComplex {gameCName::Text, gameData::[((Text, Maybe Double), (Text, Maybe Double), Double)], outcomesC::(Maybe Result)}), also carry through the NextMixup metadata for readability
