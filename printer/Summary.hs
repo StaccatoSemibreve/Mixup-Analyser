@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Detailed
+module Summary
     ( printer
     ) where
 
@@ -19,7 +19,7 @@ import Formatting
 import Formatting.Formatters
 
 printer :: TreeGame -> Text
-printer tree = pack . drawTree . fmap (unpack . prettyshownode) $ tree
+printer (Node node _) = prettyshownode $ node
     where
         prettyshownode :: (Context, (Text, a), (Text, a), GameComplex) -> Text
         prettyshownode (c, ("None1", _), ("None2", _), g) = prettyshowgame g c
@@ -36,7 +36,7 @@ printer tree = pack . drawTree . fmap (unpack . prettyshownode) $ tree
         prettyshowcontext c = foldr prettyshowkeyval (prettyshowkeyvalfirst . head . M.toList $ c) . tail . M.toList $ c
         
         prettyshowkeyvalfirst :: (Text, Integer) -> Text
-        prettyshowkeyvalfirst (k, v) = sformat ("Context: " % stext % ": " % int) k v
+        prettyshowkeyvalfirst (k, v) = sformat (" Context: " % stext % ": " % int) k v
         prettyshowkeyval :: (Text, Integer) -> Text -> Text
         prettyshowkeyval (k, v) acc = sformat (stext % ", " % stext % ": " % int) acc k v
         

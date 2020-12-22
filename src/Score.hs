@@ -5,14 +5,15 @@ module Score
     , printer
     ) where
 
-import Game
 import Contexts
-import Parse
 import Evaluate
 
 import Control.Monad
+import Data.Text (Text)
 import Language.Haskell.Interpreter
 import qualified Language.Haskell.Interpreter as I
+import Formatting
+import Formatting.Formatters
 
 score :: String -> IO (Either InterpreterError (Context -> Double))
 score name = runInterpreter $ do
@@ -53,7 +54,7 @@ update name = runInterpreter $ do
                 
                 interpret ("update") (as :: Context -> Context)
 
-printer :: String -> IO (Either InterpreterError (TreeGame -> String))
+printer :: String -> IO (Either InterpreterError (TreeGame -> Text))
 printer name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules ["printer/" ++ name ++ ".hs"]
@@ -66,8 +67,11 @@ printer name = runInterpreter $ do
                             , ModuleImport "Data.Tree" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified (ImportList ["Text", "pack", "unpack", "append"])
                             , ModuleImport "Data.Text" (QualifiedAs $ Just "T") NoImportList
+                            , ModuleImport "Data.Text.Lazy" (QualifiedAs $ Just "TL") NoImportList
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
                             , ModuleImport "Data.Map" (QualifiedAs $ Just "M") NoImportList
+                            , ModuleImport "Formatting" NotQualified NoImportList
+                            , ModuleImport "Formatting.Formatters" NotQualified NoImportList
                             ]
                 
-                interpret ("printer") (as :: TreeGame -> String)
+                interpret ("printer") (as :: TreeGame -> Text)

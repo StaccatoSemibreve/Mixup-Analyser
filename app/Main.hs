@@ -124,7 +124,7 @@ main =  do
         parseEnd sdata = fmap (either (\e -> error . show $ e) id) . end . unpack . endName $ sdata
         parseUpdate :: ScoreData -> IO (Context -> Context)
         parseUpdate sdata = fmap (either (\e -> error . show $ e) id) . update . unpack . updateName $ sdata
-        parsePrinter :: ScoreData -> IO (TreeGame -> String)
+        parsePrinter :: ScoreData -> IO (TreeGame -> Text)
         parsePrinter sdata = fmap (either (\e -> error . show $ e) id) . printer . unpack . outType $ sdata
         
         getScore :: [(Text, Context -> Double)] -> Text -> (Context -> Double)
@@ -133,7 +133,7 @@ main =  do
         getEnd fs f = fromMaybe (error $ "Tried to get a nonexistent endstate: " ++ (unpack f)) . lookup f $ fs
         getUpdater :: [(Text, Context -> Context)] -> Text -> (Context -> Context)
         getUpdater fs f = fromMaybe (error $ "Tried to get a nonexistent updater: " ++ (unpack f)) . lookup f $ fs
-        getPrinter :: [(Text, TreeGame -> String)] -> Text -> (TreeGame -> String)
+        getPrinter :: [(Text, TreeGame -> Text)] -> Text -> (TreeGame -> Text)
         getPrinter fs f = fromMaybe (error $ "Tried to get a nonexistent printer: " ++ (unpack f)) . lookup f $ fs
         getData :: [(Text, [MixupGroup])] -> Text -> [MixupGroup]
         getData fs f = fromMaybe (error $ "Tried to get nonexistent input data: " ++ (unpack f)) . lookup f $ fs
@@ -144,7 +144,7 @@ main =  do
         growTree fs1 fs2 (mgroup, instr, sdata) = (outcomesToContextTree mgroup (getEnd fs1 . endName $ sdata) (getUpdater fs2 . updateName $ sdata) instr, instr, sdata)
         gamifyTree :: [(Text, Context -> Double)] -> (TreeContext, Instruction, ScoreData) -> (TreeGame, ScoreData)
         gamifyTree fs (tree, instr, sdata) = (extend (foldTree $ treeScoreFolder (getScore fs . scoreName $ sdata)) tree, sdata)
-        exportTree :: [(Text, TreeGame -> String)] -> (TreeGame, ScoreData) -> IO ()
+        exportTree :: [(Text, TreeGame -> Text)] -> (TreeGame, ScoreData) -> IO ()
         exportTree fs (tree, sdata) = do
             let filename = makeValid . unpack . outPath $ sdata
             putStrLn $ "Exporting to out/" ++ filename
@@ -152,7 +152,7 @@ main =  do
             putStrLn $ "Tree depth: " ++ (show treedepth)
             when (treedepth > 10000) $ putStrLn "Oh no…"
             putStrLn $ "Printer: " ++ (unpack . outType $ sdata)
-            writeFile ("out/" ++ (unpack . outPath $ sdata)) . (getPrinter fs . outType $ sdata) $ tree
+            writeFile ("out/" ++ (unpack . outPath $ sdata)) . unpack . (getPrinter fs . outType $ sdata) $ tree
             where
                 treeDepthFolder :: a -> [Int] -> Int
                 treeDepthFolder _ [] = 1

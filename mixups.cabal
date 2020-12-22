@@ -42,6 +42,7 @@ library
     , containers
     , directory
     , filepath
+    , formatting ==6.3.7
     , hint
     , hmatrix
     , lucid
@@ -64,6 +65,7 @@ executable mixups-exe
     , containers
     , directory
     , filepath
+    , formatting ==6.3.7
     , hint
     , hmatrix
     , lucid
@@ -88,6 +90,7 @@ test-suite mixups-test
     , containers
     , directory
     , filepath
+    , formatting ==6.3.7
     , hint
     , hmatrix
     , lucid

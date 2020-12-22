@@ -6,7 +6,7 @@
             name: Win
             endstate: HealthZero
             updater: Chipper
-            format: Detailed
+            format: Summary
             path: SimpleDamage.txt
         -
             name: Win
@@ -22,39 +22,7 @@
             path: SimpleWin.txt
     context:
         set:
-            AHealth: 4
-            AChip: 2
-            BHealth: 4
-            BSuper: 1
-        next:
-            attacker: A
-            defender: B
-            mixup: Mix
--
-    name: Simple2
-    path: Simple
-    score:
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage2.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamageDiff2.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleWin2.txt
-    context:
-        set:
-            AHealth: 1
+            AHealth: 2
             AChip: 2
             BHealth: 1
             BSuper: 1
