@@ -29,6 +29,9 @@ dependencies:
 - HsYAML
 - bytestring
 - hint
+- filepath
+- directory
+- lucid
 
 library:
   source-dirs: src

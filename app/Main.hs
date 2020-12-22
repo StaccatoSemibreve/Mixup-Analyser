@@ -14,52 +14,110 @@ import Contexts
 import Score
 
 import Data.Maybe
-import Data.Text (Text, unpack)
+import Data.List
+import Data.List.Split
+import Data.Text (Text, unpack, pack)
 import Data.Tree
+import Control.Monad
 import Control.Comonad
+import System.Directory (listDirectory)
+import System.FilePath (makeValid)
 
 main :: IO ()
 main =  do
-    -- old test cases for the Game module
---     let gs = [game "Strike/Throw" ["Strike","Throw"] ["Block", "Yomi"] [[0.3,1], [2,-1]],
---               game "Strike/Throw (Borked)" ["Strike","Strike"] ["Block", "Yomi"] [[0.3,0.3], [2,2]],
---               game "Strike/Throw (Antiblock)" ["Strike","Throw"] ["Block", "Yomi", "Antiblock"] [[0.3,1], [2,-1], [1,0.3]],
---               game "Strike" ["Strike"] ["Block", "Yomi"] [[0.3], [2]],
---               game "Oki (Rook)" ["Strike","Throw","Cmd"] ["Block","Yomi","Jump"] [[0.3,1,1], [2,-1,2], [1,2,-3]],
---               game "weird" ["Strike"] ["Block", "Yomi"] [[0.3],[2]] ]
---     mapM_ putStrLn . map (show . solve) $ gs
+    foundScores     <- findFiles "score"
+    foundEnds       <- findFiles "endstate"
+    foundUpdaters   <- findFiles "updater"
+    foundPrinters   <- findFiles "printer"
+    foundData       <- findFiles "in"
     
---     let g = gameComplex "Strike/Throw" "" "" [(("Strike", Nothing), ("Block", Just 0.81), 0.3), (("Strike", Nothing), ("Yomi", Just 0.19), 2), (("Strike", Nothing), ("Superblock", Just 0), 1)
---                                              ,(("Throw", Nothing), ("Block", Just 0.81), 1), (("Throw", Nothing), ("Yomi", Just 0.19), -1), (("Throw", Nothing), ("Superblock", Just 0), -1)]
---     let g = gameComplex "Strike/Item" [(("Coin", Just 0.75), ("Block", Nothing), 0.3), (("Coin", Just 0.75), ("Yomi", Nothing), 1),
---                                        (("Cherry", Just 0.25), ("Block", Nothing), 1), (("Cherry", Just 0.25), ("Yomi", Nothing), -1)]
---     
---     let gsolved = solveComplex g
---     putStrLn . show $ gsolved
+    if null foundScores then error "No Score modules found in /score!" else putStrLn "Found Score modules in /score:"
+    mapM_ putStrLn . map ("- "++) $ foundScores
+    
+    if null foundEnds then error "No EndState modules found in /endstate!" else putStrLn "Found EndState modules in /endstate:"
+    mapM_ putStrLn . map ("- "++) $ foundEnds
+    
+    if null foundUpdaters then error "No Updater modules found in /updater!" else putStrLn "Found Updater modules in /updater:"
+    mapM_ putStrLn . map ("- "++) $ foundUpdaters
+    
+    if null foundPrinters then error "No Printer modules found in /printer!" else putStrLn "Found Printer modules in /printer:"
+    mapM_ putStrLn . map ("- "++) $ foundPrinters
+    
+    if null foundData then error "No input data found in /in!" else putStrLn "Found input data in /in:"
+    mapM_ putStrLn . map ("- "++) $ foundData
     
     instructions <- readInstructions
-    mgroups <- mapM instructionToMixupGroups instructions
+    if null instructions then error "No instructions found in config.yaml!" else putStrLn "Found instructions in config.yaml:"
+    mapM_ putStrLn . map (\instr -> "- "++(unpack . name $ instr)) $ instructions
+    
+    let instrScoreData = nub . map scores $ instructions
+    let instrScores = nub . concat . map (map $ unpack . scoreName) $ instrScoreData
+    let instrEnds = nub . concat . map (map $ unpack . endName) $ instrScoreData
+    let instrUpdaters = nub . concat . map (map $ unpack . updateName) $ instrScoreData
+    let instrPrinters = nub . concat . map (map $ unpack . outType) $ instrScoreData
+    let instrData = nub . (map $ unpack . path) $ instructions
+    putStrLn "Read instructions!"
+    
+    let reqScores = filter (`elem` instrScores) . nub $ foundScores
+    let reqEnds = filter (`elem` instrEnds) . nub $ foundEnds
+    let reqUpdaters = filter (`elem` instrUpdaters) . nub $ foundUpdaters
+    let reqPrinters = filter (`elem` instrPrinters) . nub $ foundPrinters
+    let reqData = filter (`elem` instrData) . nub $ foundData
+    
+    unless (null $ instrScores \\ reqScores) $ error $ "Required Score modules missing in /score! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrScores \\ reqScores)
+    putStrLn "Required Score modules:"
+    mapM_ putStrLn . map ("- "++) $  reqScores
+    
+    unless (null $ instrEnds \\ reqEnds) $ error $ "Required EndState modules missing in /endstate! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrEnds \\ reqEnds)
+    putStrLn "Required EndState modules:"
+    mapM_ putStrLn . map ("- "++) $  reqEnds
+    
+    unless (null $ instrUpdaters \\ reqUpdaters) $ error $ "Required Updater modules missing in /updater! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrUpdaters \\ reqUpdaters)
+    putStrLn "Required Updater modules:"
+    mapM_ putStrLn . map ("- "++) $  reqUpdaters
+    
+    unless (null $ instrPrinters \\ reqPrinters) $ error $ "Required Printer modules missing in /printer! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrPrinters \\ reqPrinters)
+    putStrLn "Required Printer modules:"
+    mapM_ putStrLn . map ("- "++) $  reqPrinters
+    
+    unless (null $ instrData \\ reqData) $ error $ "Required input data missing in /in! Missing files: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrData \\ reqData)
+    putStrLn "Required input data:"
+    mapM_ putStrLn . map ("- "++) $ reqData
+    
+    parsedScores <- mapM (parseScript score) reqScores
+    putStrLn "Parsed and compiled all required Score modules!"
+    parsedEnds <- mapM (parseScript end) reqEnds
+    putStrLn "Parsed and compiled all required EndState modules!"
+    parsedUpdaters <- mapM (parseScript update) reqUpdaters
+    putStrLn "Parsed and compiled all required Updater modules!"
+    parsedPrinters <- mapM (parseScript printer) reqPrinters
+    putStrLn "Parsed and compiled all required Printer modules!"
+    parsedData <- mapM parseData reqData
+    putStrLn "Parsed all required input data!"
+    
+    let scoreLookup = zip (map pack reqScores) parsedScores
+    let endLookup = zip (map pack reqEnds) parsedEnds
+    let updaterLookup = zip (map pack reqUpdaters) parsedUpdaters
+    let printerLookup = zip (map pack reqPrinters) parsedPrinters
+    let dataLookup = zip (map pack reqData) parsedData
+    putStrLn "Created lookup tables!"
     
     
-    let scoredata = concat . map scores $ instructions
-    
-    parsedScores <- mapM parseScore scoredata
-    parsedEnds <- mapM parseEnd scoredata
-    parsedUpdaters <- mapM parseUpdate scoredata
-    parsedPrinters <- mapM parsePrinter scoredata
-    
-    let scoreLookup = zip (map scoreName scoredata) parsedScores
-    let endLookup = zip (map endName scoredata) parsedEnds
-    let updaterLookup = zip (map updateName scoredata) parsedUpdaters
-    let printerLookup = zip (map outType scoredata) parsedPrinters
-    
-    
-    let roots = concat . map treeRoots . zip mgroups $ instructions
+    let roots = concat . map (plantTrees dataLookup) $ instructions
+    putStrLn "Planted context trees!"
     let contexttrees = map (growTree endLookup updaterLookup) roots
+    putStrLn "Grown context trees, using their respective EndState and Updater modules!"
     let gametrees = map (gamifyTree scoreLookup) contexttrees
+    putStrLn "Analysed context trees, using their respective Score modules!"
     
-    mapM_ (\(tree,sdata) -> writeFile ("out/" ++ (unpack . outPath $ sdata)) . (getPrinter printerLookup . outType $ sdata) $ tree) gametrees
+    mapM_ (exportTree printerLookup) gametrees
+    putStrLn "Done!"
     where
+        findFiles :: String -> IO ([String])
+        findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
+        
+        parseScript :: Show a => (String -> IO (Either a b)) -> String -> IO b
+        parseScript f = fmap (either (\e -> error . show $ e) id) . f
         parseScore :: ScoreData -> IO (Context -> Double)
         parseScore sdata = fmap (either (\e -> error . show $ e) id) . score . unpack . scoreName $ sdata
         parseEnd :: ScoreData -> IO (Context -> Bool)
@@ -70,17 +128,32 @@ main =  do
         parsePrinter sdata = fmap (either (\e -> error . show $ e) id) . printer . unpack . outType $ sdata
         
         getScore :: [(Text, Context -> Double)] -> Text -> (Context -> Double)
-        getScore fs f = fromMaybe (error $ "tried to get a nonexistent score: " ++ (unpack f)) . lookup f $ fs
+        getScore fs f = fromMaybe (error $ "Tried to get a nonexistent score: " ++ (unpack f)) . lookup f $ fs
         getEnd :: [(Text, Context -> Bool)] -> Text -> (Context -> Bool)
-        getEnd fs f = fromMaybe (error $ "tried to get a nonexistent endstate: " ++ (unpack f)) . lookup f $ fs
+        getEnd fs f = fromMaybe (error $ "Tried to get a nonexistent endstate: " ++ (unpack f)) . lookup f $ fs
         getUpdater :: [(Text, Context -> Context)] -> Text -> (Context -> Context)
-        getUpdater fs f = fromMaybe (error $ "tried to get a nonexistent updater: " ++ (unpack f)) . lookup f $ fs
+        getUpdater fs f = fromMaybe (error $ "Tried to get a nonexistent updater: " ++ (unpack f)) . lookup f $ fs
         getPrinter :: [(Text, TreeGame -> String)] -> Text -> (TreeGame -> String)
-        getPrinter fs f = fromMaybe (error $ "tried to get a nonexistent printer: " ++ (unpack f)) . lookup f $ fs
+        getPrinter fs f = fromMaybe (error $ "Tried to get a nonexistent printer: " ++ (unpack f)) . lookup f $ fs
+        getData :: [(Text, [MixupGroup])] -> Text -> [MixupGroup]
+        getData fs f = fromMaybe (error $ "Tried to get nonexistent input data: " ++ (unpack f)) . lookup f $ fs
         
-        treeRoots :: ([MixupGroup], Instruction) -> [([MixupGroup], Instruction, ScoreData)]
-        treeRoots (mgroup, instr) = map (\s -> (mgroup, instr, s)) . scores $ instr
+        plantTrees :: [(Text, [MixupGroup])] -> Instruction -> [([MixupGroup], Instruction, ScoreData)]
+        plantTrees mgroups instr = map (\s -> (getData mgroups . path $ instr, instr, s)) . scores $ instr
         growTree :: [(Text, Context -> Bool)] -> [(Text, Context -> Context)] -> ([MixupGroup], Instruction, ScoreData) -> (TreeContext, Instruction, ScoreData)
         growTree fs1 fs2 (mgroup, instr, sdata) = (outcomesToContextTree mgroup (getEnd fs1 . endName $ sdata) (getUpdater fs2 . updateName $ sdata) instr, instr, sdata)
         gamifyTree :: [(Text, Context -> Double)] -> (TreeContext, Instruction, ScoreData) -> (TreeGame, ScoreData)
         gamifyTree fs (tree, instr, sdata) = (extend (foldTree $ treeScoreFolder (getScore fs . scoreName $ sdata)) tree, sdata)
+        exportTree :: [(Text, TreeGame -> String)] -> (TreeGame, ScoreData) -> IO ()
+        exportTree fs (tree, sdata) = do
+            let filename = makeValid . unpack . outPath $ sdata
+            putStrLn $ "Exporting to out/" ++ filename
+            let treedepth = foldTree treeDepthFolder $ tree
+            putStrLn $ "Tree depth: " ++ (show treedepth)
+            when (treedepth > 10000) $ putStrLn "Oh no…"
+            putStrLn $ "Printer: " ++ (unpack . outType $ sdata)
+            writeFile ("out/" ++ (unpack . outPath $ sdata)) . (getPrinter fs . outType $ sdata) $ tree
+            where
+                treeDepthFolder :: a -> [Int] -> Int
+                treeDepthFolder _ [] = 1
+                treeDepthFolder _ xs = sum xs

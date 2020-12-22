@@ -1,6 +1,6 @@
 -
     name: Simple
-    path: Simple.yaml
+    path: Simple
     score:
         -
             name: Win
@@ -22,9 +22,9 @@
             path: SimpleWin.txt
     context:
         set:
-            AHealth: 2
+            AHealth: 4
             AChip: 2
-            BHealth: 2
+            BHealth: 4
             BSuper: 1
         next:
             attacker: A
@@ -32,7 +32,7 @@
             mixup: Mix
 -
     name: Simple2
-    path: Simple.yaml
+    path: Simple
     score:
         -
             name: Win

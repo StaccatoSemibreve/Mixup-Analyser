@@ -3,9 +3,9 @@
 -- parses yaml into specific types also stored here
 module Parse
     ( readInstructions -- get every Instruction from run.yaml, so we can know where to start
-    , instructionToMixupGroups -- take an Instruction, return all the relevant mixup data from the file it sends us to
+    , parseData -- take a FileName, return all the relevant mixup data from the file it sends us to
     , ScoreData (ScoreData, scoreName, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
-    , Instruction (Instruction, name, scores, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
+    , Instruction (Instruction, name, path, scores, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
     , Context -- a lookup table of current game state, v important to track this!
     , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
     , Mixup (Mixup, mixupName) -- a raw mixup
@@ -135,5 +135,5 @@ readYAML path = do
 readInstructions :: IO ([Instruction])
 readInstructions = readYAML "config.yaml"
 
-instructionToMixupGroups :: Instruction -> IO ([MixupGroup])
-instructionToMixupGroups = readYAML . ("in/"++) . unpack . path
+parseData :: FilePath -> IO ([MixupGroup])
+parseData = readYAML . (++".yaml") . ("in/"++)
