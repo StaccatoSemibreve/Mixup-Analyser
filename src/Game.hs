@@ -10,7 +10,9 @@ module Game
     , GameComplex (GameComplex, gameCName, gameData, outcomesC)
     , gameComplex -- like a Game but has fixed weight options too
     , solveComplex
+    , solveComplexCore
     , ResultComplex (ResultComplex, resCEV, resCAtts, resCDefs)
+    , resultComplex
     ) where
 
 import Data.List
@@ -37,6 +39,53 @@ instance Ord Result where
     compare = compare `on` ev
 instance Eq Result where
     (==) = (==) `on` ev
+
+-- first, get all possible combinations of supports (equivalent to cartesian product then groupBy) - note that these are "antisupports", they are taken away rather than included for ease of use with hmatrix
+-- then convert to the respective matrices and solve
+-- then filter by valid results, find the optimal defending result per possible attack, then the optimal attacking result based on this
+solveCore :: Matrix Double -> Result
+solveCore m = maximum . map (minimum) . map2 tidy . filter (not . null) . map (filter (validate . snd)) . map2 (\s -> (s, subsolve (subms s m))) . supports $ m
+    where
+        map2 f = map (map f)
+        
+        supports :: Matrix Double -> [[([Int], [Int])]]
+        supports m = map (\c -> map (\r -> (c,r)) . init . subsequences $ [0..(rows m - 1)]) $ (init . subsequences $ ([0..(cols m - 1)]))
+
+        subsolve :: Matrix Double -> Result
+        subsolve m =
+            case (rows m, cols m) of
+                 (1,1) -> Result (head . concat . toLists $ m) 0 [1] [1]
+                 (1,c) -> (\ev -> Result (snd ev) 0 ((take (fst ev) (repeat 0)) ++ [1] ++ (take (c - fst ev - 1) (repeat 0))) [1]) $ maximumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
+                 (r,1) -> (\ev -> Result (snd ev) 0 [1] ((take (fst ev) (repeat 0)) ++ [1] ++ (take (r - fst ev - 1) (repeat 0)))) $ minimumBy (compare `on` snd) . zip [0..] $ (concat . toLists $ m)
+                 _ -> do
+                     let inverse = pinvTol 0.01 m
+                     let ev = (1/) . sum . concat . toLists $ inverse
+                     let weights1 = concat . toLists $ ((scalar ev) * inverse Numeric.LinearAlgebra.<> (((rows m)><1) (repeat (fromInteger 1))))
+                     let weights2 = concat . toLists $ ((scalar ev) * (tr' inverse) Numeric.LinearAlgebra.<> (((cols m)><1) (repeat (fromInteger 1))))
+                     let sd = calcSD (Game "" [] [] m Nothing) weights1 weights2
+                     Result ev sd weights1 weights2
+
+        subms :: ([Int], [Int]) -> Matrix Double -> Matrix Double -- remove rows and columns from a matrix
+        subms vals m = fromColumns . removeIndexes (fst vals) . toColumns . fromRows . removeIndexes (snd vals) . toRows $ m
+            where
+                removeIndexes :: [Int] -> [a] -> [a]
+                removeIndexes [] xs = xs
+                removeIndexes _ [] = error "Can't remove from an empty list!"
+                removeIndexes [0] (x:xs) = xs
+                removeIndexes [n] (x:xs) = x:(removeIndexes [n-1] xs)
+                removeIndexes (n:ns) xs = removeIndexes (fmap (subtract 1) ns) (removeIndexes [n] xs)
+
+        addIndexes :: a -> [Int] -> [a] -> [a]
+        addIndexes _ [] xs = xs
+        addIndexes def [0] xs = def:xs
+        addIndexes _ _ [] = error "Add index out of bounds"
+        addIndexes def [n] (x:xs) = x:(addIndexes def [n-1] xs)
+        addIndexes def (n:ns) xs = addIndexes def ns (addIndexes def [n] xs)
+
+        validate :: Result -> Bool
+        validate (Result _ _ w1 w2) = (all (>=0) w1) && (all (>=0) w2)
+        tidy :: (([Int],[Int]), Result) -> Result
+        tidy ((r, c), Result ev sd w1 w2) = Result ev sd (addIndexes 0 r $ w1) (addIndexes 0 c $ w2)
 
 -- first, get all possible combinations of supports (equivalent to cartesian product then groupBy) - note that these are "antisupports", they are taken away rather than included for ease of use with hmatrix
 -- then convert to the respective matrices and solve
@@ -85,15 +134,23 @@ solve (Game x1 x2 x3 m _) = Game x1 x2 x3 m (Just (maximum . map (minimum) . map
         tidy :: (([Int],[Int]), Result) -> Result
         tidy ((r, c), Result ev sd w1 w2) = Result ev sd (addIndexes 0 r $ w1) (addIndexes 0 c $ w2)
 
+gameCore :: [[Double]] -> Matrix Double
+gameCore = fromLists
 game :: Text -> [Text] -> [Text] -> [[Double]] -> Game
 game n c r m = Game n c r (fromLists m) Nothing
 
+calcEVCore :: Matrix Double -> [Double] -> [Double] -> Double
+calcEVCore mat cols rows = (head . head . toLists $ (row (fmap (/ sum rows) rows)) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols)))
 calcEV :: Game -> [Double] -> [Double] -> Double
 calcEV (Game _ _ _ mat _) cols rows = (head . head . toLists $ (row (fmap (/ sum rows) rows)) Numeric.LinearAlgebra.<> mat Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols)))
 
+calcVarCore :: Matrix Double -> [Double] -> [Double] -> Double
+calcVarCore mat cols rows = calcEVCore (cmap (\x -> (x - calcEVCore mat cols rows)**2) mat) cols rows
 calcVar :: Game -> [Double] -> [Double] -> Double
 calcVar g@(Game a b c mat e) cols rows = calcEV (Game a b c (cmap (\x -> (x - calcEV g cols rows)**2) mat) e) cols rows
 
+calcSDCore :: Matrix Double -> [Double] -> [Double] -> Double
+calcSDCore mat cols rows = sqrt $ calcVarCore mat cols rows
 calcSD :: Game -> [Double] -> [Double] -> Double
 calcSD g cols rows = sqrt $ calcVar g cols rows
 
@@ -114,6 +171,66 @@ instance Show GameComplex where
 
 gameComplex :: Text -> Text -> Text -> [(Opt, Opt, Double)] -> GameComplex
 gameComplex t1 t2 t3 m = GameComplex t1 t2 t3 (sort m) Nothing
+
+solveComplexCore :: Ord a => [((a, Maybe Double), (a, Maybe Double), Double)] -> Result
+solveComplexCore gdata = do
+--  get all the subgame data and split it according to type: neither = Nothing, col = Nothing, row = Nothing, both = Nothing
+--  evs :: [[((Text, Maybe Double), (Text, Maybe Double), Double)]]
+    let evs = map (\i -> filter (\outcome -> typeCheck outcome == i) $ gdata) [0..3]
+    
+    case evs of
+         [both, [], [], []]  -> do -- both are fixed, so we just copy the weights into 
+             let rows = nub . map (fst . fst3) $ both
+             let cols = nub . map (fst . snd3) $ both
+             let outs = map (map thd3) . transpose . chunksOf (length rows) $ both
+             
+             let g      = gameCore outs
+             let cw     = map (maybe (error "???") id . snd) . nub . map fst3 $ both
+             let rw     = map (maybe (error "???") id . snd) . nub . map snd3 $ both
+             Result (calcEVCore g cw rw) (calcSDCore g cw rw) cw rw
+
+         [[], c, [], []]      -> do -- typeCheck 1 -> columns unfixed, rows fixed, evaluate columns
+             let cols = nub . map (fst . fst3) $ c -- each column option, in the form of name::Text
+             let rows = map (\(a, Just b) -> (a,b)) . nub . map snd3 $ c -- each row option, in the form of (name, weight)::(Text, Double)
+             let outs = transpose . map (map thd3) . chunksOf (length rows) $ c -- the outcome matrix
+             let g = gameCore outs -- the game to evaluate evs with
+             
+             let colStrats = map (pureStrategy . length $ cols) [0..length cols] -- every pure strategy to try against the fixed row strategy
+             let evs = map (\strat -> calcEVCore g strat (map snd rows)) colStrats -- every ev
+             
+             let (cw, ev) = maximumBy (compare `on` snd) . zip colStrats $ evs -- get the optimal pure strategy
+             let rw = map snd rows
+             let sd = calcSDCore g cw rw -- get the standard deviation
+             Result ev sd cw rw
+
+         [[], [], r, []]      -> do -- the same as above, but cols fixed rows unfixed
+             let cols = map (\(a, Just b) -> (a,b)) . nub . map fst3 $ r
+             let rows = nub . map (fst . snd3) $ r
+             let outs = transpose . map (map thd3) . chunksOf (length rows) $ r
+             let g = gameCore outs
+             
+             let rowStrats = map (pureStrategy . length $ rows) [0..length rows]
+             let evs = map (\strat -> calcEVCore g (map snd cols) strat) rowStrats
+             
+             let cw = map snd cols
+             let (rw, ev) = minimumBy (compare `on` snd) . zip rowStrats $ evs -- the defender wants to minimise the ev
+             let sd = calcSDCore g cw rw
+             Result ev sd cw rw
+
+         [[], [], [], neither]     -> do -- both are unfixed, so we just calculate it as a normal Game
+             let cols = nub . map (fst . fst3) $ neither
+             let rows = nub . map (fst . snd3) $ neither
+             let outs = map (map thd3) . transpose . chunksOf (length rows) $ neither
+             
+             solveCore . gameCore $ outs
+             
+         _                      -> error "both fixed and unfixed options for a single player" -- no. don't. this makes no sense!!! the only reason i can even think you'd want to try is equivalent to just nesting in another mixup, so just do that.
+    
+    where
+        typeCheck ((_,c), (_,r), _) = (fromEnum . isNothing $ c) + ((2*) . fromEnum . isNothing $ r)
+        
+        pureStrategy :: Int -> Int -> [Double]
+        pureStrategy l x = take l ((take (x-1) . repeat $ 0) ++ (1:[0..]))
 
 -- solveComplex :: GameComplex -> [[((Text, Maybe Double), (Text, Maybe Double), Double)]]
 solveComplex gc@(GameComplex gname attname defname gdata _) = do

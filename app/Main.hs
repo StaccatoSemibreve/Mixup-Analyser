@@ -155,7 +155,7 @@ program config = do
         plantTrees mgroups instr = map (\s -> (getData mgroups . path $ instr, instr, s)) . scores $ instr
         growTree :: Map Text EndState -> Map Text Updater -> (MixupData, Instruction, ScoreData) -> (TreeContext, Instruction, ScoreData)
         growTree fs1 fs2 (mgroup, instr, sdata) = (outcomesToContextTree mgroup (getEnd fs1 . endName $ sdata) (getUpdater fs2 . updateName $ sdata) instr, instr, sdata)
-        gamifyTree :: (MonadMemo GameComplex GameComplex m) => Map Text Score -> (TreeContext, Instruction, ScoreData) -> m (TreeGame, ScoreData)
+        gamifyTree :: (MonadMemo [(Opt, Opt, Double)] Result m) => Map Text Score -> (TreeContext, Instruction, ScoreData) -> m (TreeGame, ScoreData)
         gamifyTree fs (tree, instr, sdata) = (sequence . extend (foldTree $ treeScoreFolderM (getScore fs . scoreName $ sdata)) $ tree) >>= (\trees -> return (trees, sdata))
         gamifyTreeOldish :: Map Text Score -> (TreeContext, Instruction, ScoreData) -> (TreeGame, ScoreData)
         gamifyTreeOldish fs (tree, instr, sdata) = (startEvalMemo . sequence . extend (foldTree $ treeScoreFolderM (getScore fs . scoreName $ sdata)) $ tree, sdata)

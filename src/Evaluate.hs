@@ -9,6 +9,7 @@ module Evaluate
     , treeScoreFolderM
     , TreeContext
     , TreeGame
+    , Opt
     ) where
 
 import Contexts
@@ -110,16 +111,14 @@ treeScoreFolder score (mnext,a,b,c) subgames = let
                                                in
                                                    (c,a,b, solveComplex $ gameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs)
 
-treeScoreFolderM :: (MonadMemo GameComplex GameComplex m) => Score -> TreeContextItem -> [m TreeGameItem] -> m TreeGameItem
+treeScoreFolderM :: (MonadMemo [(Opt, Opt, Double)] Result m) => Score -> TreeContextItem -> [m TreeGameItem] -> m TreeGameItem
 treeScoreFolderM score (mnext,a,b,c) [] = do
-    let cpx = gameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)]
-    res <- memo (pure . solveComplex) cpx
-    return (c,a,b,res)
+    res <- memo (pure . solveComplexCore) [(a,b,score c)]
+    return (c,a,b, GameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)] . Just . resultComplex [(a,b,score c)] $ res)
 treeScoreFolderM score (mnext,a,b,c) subgamesM = do
     evs <- map (\(_, o1, o2, g) -> (o1, o2, resCEV . fromMaybe (error "???") . outcomesC $ g)) <$> sequence subgamesM
-    let cpx = gameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs
-    res <- memo (pure . solveComplex) cpx
-    return (c,a,b, res)
+    res <- memo (pure . solveComplexCore) evs
+    return (c,a,b, GameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs . Just . resultComplex evs $ res)
 
 scanTree f ~(Node r l) = Node r $ map (scan' r) l where
     scan' a ~(Node n b) = let a' = f a n in Node a' $ map (scan' r) b 
