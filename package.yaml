@@ -33,6 +33,8 @@ dependencies:
 - directory
 - lucid
 - formatting == 6.3.7
+- monad-memo
+- criterion
 
 library:
   source-dirs: src

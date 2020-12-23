@@ -40,12 +40,14 @@ library
     , bytestring
     , comonad
     , containers
+    , criterion
     , directory
     , filepath
     , formatting ==6.3.7
     , hint
     , hmatrix
     , lucid
+    , monad-memo
     , split
     , text
   default-language: Haskell2010
@@ -63,6 +65,7 @@ executable mixups-exe
     , bytestring
     , comonad
     , containers
+    , criterion
     , directory
     , filepath
     , formatting ==6.3.7
@@ -70,6 +73,7 @@ executable mixups-exe
     , hmatrix
     , lucid
     , mixups
+    , monad-memo
     , split
     , text
   default-language: Haskell2010
@@ -88,6 +92,7 @@ test-suite mixups-test
     , bytestring
     , comonad
     , containers
+    , criterion
     , directory
     , filepath
     , formatting ==6.3.7
@@ -95,6 +100,7 @@ test-suite mixups-test
     , hmatrix
     , lucid
     , mixups
+    , monad-memo
     , split
     , text
   default-language: Haskell2010

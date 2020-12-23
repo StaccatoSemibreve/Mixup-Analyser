@@ -6,25 +6,55 @@
             name: Win
             endstate: HealthZero
             updater: Chipper
-            format: Summary
+            format: Detailed
             path: SimpleDamage.txt
         -
             name: Win
             endstate: HealthZero
             updater: Chipper
             format: Detailed
-            path: SimpleDamageDiff.txt
+            path: SimpleDamage.txt
         -
             name: Win
             endstate: HealthZero
             updater: Chipper
             format: Detailed
-            path: SimpleWin.txt
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleDamage.txt
     context:
         set:
-            AHealth: 2
+            AHealth: 3
             AChip: 2
-            BHealth: 1
+            BHealth: 3
             BSuper: 1
         next:
             attacker: A

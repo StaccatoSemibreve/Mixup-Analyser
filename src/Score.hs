@@ -1,8 +1,12 @@
 module Score
     ( score
+    , Score
     , end
+    , EndState
     , update
+    , Updater
     , printer
+    , Printer
     ) where
 
 import Contexts
@@ -15,7 +19,12 @@ import qualified Language.Haskell.Interpreter as I
 import Formatting
 import Formatting.Formatters
 
-score :: String -> IO (Either InterpreterError (Context -> Double))
+type Score = Context -> Double
+type EndState = Context -> Bool
+type Updater = Context -> Context
+type Printer = TreeGame -> Text
+
+score :: String -> IO (Either InterpreterError Score)
 score name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules ["score/" ++ name ++ ".hs"]
@@ -26,9 +35,9 @@ score name = runInterpreter $ do
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
                             ]
                 
-                interpret ("score") (as :: Context -> Double)
+                interpret ("score") (as :: Score)
 
-end :: String -> IO (Either InterpreterError (Context -> Bool))
+end :: String -> IO (Either InterpreterError EndState)
 end name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules ["endstate/" ++ name ++ ".hs"]
@@ -39,9 +48,9 @@ end name = runInterpreter $ do
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
                             ]
                 
-                interpret ("end") (as :: Context -> Bool)
+                interpret ("end") (as :: EndState)
 
-update :: String -> IO (Either InterpreterError (Context -> Context))
+update :: String -> IO (Either InterpreterError Updater)
 update name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules ["updater/" ++ name ++ ".hs"]
@@ -52,9 +61,9 @@ update name = runInterpreter $ do
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
                             ]
                 
-                interpret ("update") (as :: Context -> Context)
+                interpret ("update") (as :: Updater)
 
-printer :: String -> IO (Either InterpreterError (TreeGame -> Text))
+printer :: String -> IO (Either InterpreterError Printer)
 printer name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules ["printer/" ++ name ++ ".hs"]
@@ -74,4 +83,4 @@ printer name = runInterpreter $ do
                             , ModuleImport "Formatting.Formatters" NotQualified NoImportList
                             ]
                 
-                interpret ("printer") (as :: TreeGame -> Text)
+                interpret ("printer") (as :: Printer)
