@@ -94,21 +94,21 @@ program config = do
     mapM_ putStrLn . map ("- "++) $ reqData
     
     parsedScores <- mapM (parseScript score) reqScores
-    putStrLn "Parsed and compiled all required Score modules!"
+    putStrLn "Parsed all required Score modules!"
     parsedEnds <- mapM (parseScript end) reqEnds
-    putStrLn "Parsed and compiled all required EndState modules!"
+    putStrLn "Parsed all required EndState modules!"
     parsedUpdaters <- mapM (parseScript update) reqUpdaters
-    putStrLn "Parsed and compiled all required Updater modules!"
+    putStrLn "Parsed all required Updater modules!"
     parsedPrinters <- mapM (parseScript printer) reqPrinters
-    putStrLn "Parsed and compiled all required Printer modules!"
+    putStrLn "Parsed all required Printer modules!"
     parsedData <- mapM parseData reqData
     putStrLn "Parsed all required input data!"
     
-    let scoreLookup = Map.fromList $ zip (map pack reqScores) parsedScores
-    let endLookup = Map.fromList $ zip (map pack reqEnds) parsedEnds
-    let updaterLookup = Map.fromList $ zip (map pack reqUpdaters) parsedUpdaters
-    let printerLookup = Map.fromList $ zip (map pack reqPrinters) parsedPrinters
-    let dataLookup = Map.fromList $ zip (map pack reqData) parsedData
+    let scoreLookup = Map.fromList . zip (map pack reqScores) $! parsedScores
+    let endLookup = Map.fromList . zip (map pack reqEnds) $! parsedEnds
+    let updaterLookup = Map.fromList . zip (map pack reqUpdaters) $! parsedUpdaters
+    let printerLookup = Map.fromList . zip (map pack reqPrinters) $! parsedPrinters
+    let dataLookup = Map.fromList . zip (map pack reqData) $! parsedData
     putStrLn "Created lookup tables!"
     
     
@@ -116,14 +116,15 @@ program config = do
     putStrLn "Planted context trees!"
     let contexttrees = map (growTree endLookup updaterLookup) roots
     putStrLn "Grown context trees, using their respective EndState and Updater modules!"
-    defaultMain [
-        bgroup "gamifyTree" [ bench "new" $ nf (map (fmap (resCEV . fromMaybe (error "???") . outcomesC . (\(_,_,_,x) -> x)) . fst) . startEvalMemo . traverse (gamifyTree scoreLookup)) contexttrees
-                            , bench "oldish" $ nf (map (fmap (resCEV . fromMaybe (error "???") . outcomesC . (\(_,_,_,x) -> x)) . fst . gamifyTreeOldish scoreLookup)) contexttrees
-                            ]
-                ]
+--     defaultMain [
+--         bgroup "gamifyTree" [ bench "new" $ nf (map (fmap (resCEV . fromMaybe (error "???") . outcomesC . (\(_,_,_,x) -> x)) . fst) . startEvalMemo . traverse (gamifyTree scoreLookup)) contexttrees
+--                             , bench "oldish" $ nf (map (fmap (resCEV . fromMaybe (error "???") . outcomesC . (\(_,_,_,x) -> x)) . fst . gamifyTreeOldish scoreLookup)) contexttrees
+--                             ]
+--                 ]
+    let gametrees = startEvalMemo . traverse (gamifyTree scoreLookup) $ contexttrees
     putStrLn "Analysed context trees, using their respective Score modules!"
     
---     mapM_ (exportTree printerLookup) gametrees
+    mapM_ (exportTree printerLookup) gametrees
     putStrLn "Done!"
     where
         findFiles :: String -> IO ([String])
@@ -164,10 +165,10 @@ program config = do
         exportTree :: Map Text Printer -> (TreeGame, ScoreData) -> IO ()
         exportTree fs (tree, sdata) = do
             let filename = makeValid . unpack . outPath $ sdata
-            putStrLn $ "Exporting to out/" ++ filename
-            let treedepth = foldTree treeDepthFolder $ tree
-            putStrLn $ "Tree depth: " ++ (show treedepth)
-            when (treedepth > 10000) $ putStrLn "Oh no…"
+            putStrLn $! "Exporting to out/" ++ filename
+--             let treedepth = foldTree treeDepthFolder $ tree
+--             putStrLn $ "Tree depth: " ++ (show treedepth)
+--             when (treedepth > 10000) $ putStrLn "Oh no…"
             putStrLn $ "Printer: " ++ (unpack . outType $ sdata)
             writeFile ("out/" ++ (unpack . outPath $ sdata)) . unpack . (getPrinter fs . outType $ sdata) $ tree
             where

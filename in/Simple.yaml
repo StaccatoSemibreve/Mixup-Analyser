@@ -116,6 +116,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        ASuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -172,8 +176,6 @@
                 -
                     attackerOption: FThrow
                     defenderOption: Super
-                    require:
-                        BSuper: 1
                     set:
                         BSuper: 0
                     add:
@@ -207,8 +209,6 @@
                 -
                     attackerOption: BThrow
                     defenderOption: Super
-                    require:
-                        BSuper: 1
                     set:
                         BSuper: 0
                     add:
@@ -226,8 +226,6 @@
                 -
                     attackerOption: Block
                     defenderOption: Super
-                    require:
-                        BSuper: 1
                     set:
                         BSuper: 0
                     add:
@@ -236,6 +234,40 @@
                         attacker: A
                         defender: B
                         mixup: Punish
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        ASuper: 0
+                    add:
+                        BChip: 1
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: Punish
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        ASuper: 0
+                        BChip: 0
+                    add:
+                        BHealth: -2
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: Mix
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1
         -
             name: MixCorner
             attackerOptions:
@@ -247,6 +279,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        ASuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -359,8 +395,6 @@
                 -
                     attackerOption: Block
                     defenderOption: Super
-                    require:
-                        BSuper: 1
                     set:
                         BSuper: 0
                     add:
@@ -369,6 +403,40 @@
                         attacker: A
                         defender: B
                         mixup: PunishCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        ASuper: 0
+                    add:
+                        BChip: 1
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: PunishFromCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        ASuper: 0
+                        BChip: 0
+                    add:
+                        BHealth: -2
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: MixCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1
         -
             name: MixFromCorner
             attackerOptions:
@@ -380,6 +448,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        ASuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -502,7 +574,40 @@
                         attacker: A
                         defender: B
                         mixup: PunishFromCorner
-
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        ASuper: 0
+                    add:
+                        BChip: 1
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: PunishCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        ASuper: 0
+                        BChip: 0
+                    add:
+                        BHealth: -2
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: MixFromCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1
 -
     attacker: B
     defender: A
@@ -620,6 +725,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        ASuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -676,8 +785,6 @@
                 -
                     attackerOption: FThrow
                     defenderOption: Super
-                    require:
-                        ASuper: 1
                     set:
                         ASuper: 0
                     add:
@@ -711,8 +818,6 @@
                 -
                     attackerOption: BThrow
                     defenderOption: Super
-                    require:
-                        ASuper: 1
                     set:
                         ASuper: 0
                     add:
@@ -730,8 +835,6 @@
                 -
                     attackerOption: Block
                     defenderOption: Super
-                    require:
-                        ASuper: 1
                     set:
                         ASuper: 0
                     add:
@@ -740,6 +843,40 @@
                         attacker: B
                         defender: A
                         mixup: Punish
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        BSuper: 0
+                    add:
+                        AChip: 1
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: Punish
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        BSuper: 0
+                        AChip: 0
+                    add:
+                        AHealth: -2
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: Mix
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1
         -
             name: MixCorner
             attackerOptions:
@@ -751,6 +888,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        BSuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -873,6 +1014,40 @@
                         attacker: B
                         defender: A
                         mixup: PunishCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        BSuper: 0
+                    add:
+                        AChip: 1
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: PunishFromCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        BSuper: 0
+                        AChip: 0
+                    add:
+                        AHealth: -2
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: MixCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1
         -
             name: MixFromCorner
             attackerOptions:
@@ -884,6 +1059,10 @@
                     name: BThrow
                 -
                     name: Block
+                -
+                    name: Super
+                    require:
+                        BSuper: 1
             defenderOptions:
                 -
                     name: Block
@@ -1005,4 +1184,38 @@
                     next:
                         attacker: B
                         defender: A
-                        mixup: PunishFromCorner
+                        mixup: PunishCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Block
+                    set:
+                        BSuper: 0
+                    add:
+                        AChip: 1
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: PunishCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Yomi
+                    set:
+                        BSuper: 0
+                        AChip: 0
+                    add:
+                        AHealth: -2
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: MixFromCorner
+                -
+                    attackerOption: Super
+                    defenderOption: Super
+                    set:
+                        ASuper: 0
+                        BSuper: 0
+                        AChip: 0
+                        BChip: 0
+                    add:
+                        AHealth: -1
+                        BHealth: -1

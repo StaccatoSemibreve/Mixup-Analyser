@@ -3,60 +3,22 @@
     path: Simple
     score:
         -
-            name: Win
+            name: DamageDiff
             endstate: HealthZero
             updater: Chipper
-            format: Detailed
+            format: DetailedPartial
             path: SimpleDamage.txt
         -
             name: Win
             endstate: HealthZero
             updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
-        -
-            name: Win
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleDamage.txt
+            format: DetailedPartial
+            path: SimpleDamage2.txt
     context:
         set:
-            AHealth: 3
-            AChip: 2
-            BHealth: 3
-            BSuper: 1
+            AHealth: 4
+            BHealth: 4
         next:
             attacker: A
             defender: B
-            mixup: Mix
+            mixup: MixCorner
