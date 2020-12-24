@@ -3,22 +3,88 @@
     path: Simple
     score:
         -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixWin.txt
+        -
             name: DamageDiff
             endstate: HealthZero
             updater: Chipper
-            format: DetailedPartial
-            path: SimpleDamage.txt
+            format: Detailed
+            path: SimpleMixDamageDiff.txt
+        -
+            name: Damage
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixDamage.txt
+    context:
+        set:
+            AHealth: 3
+            BHealth: 3
+        next:
+            attacker: A
+            defender: B
+            mixup: Mix
+-
+    name: SimpleCorner
+    path: Simple
+    score:
         -
             name: Win
             endstate: HealthZero
             updater: Chipper
-            format: DetailedPartial
-            path: SimpleDamage2.txt
+            format: Detailed
+            path: SimpleMixCornerWin.txt
+        -
+            name: DamageDiff
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixCornerDamageDiff.txt
+        -
+            name: Damage
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixCornerDamage.txt
     context:
         set:
-            AHealth: 4
-            BHealth: 4
+            AHealth: 3
+            BHealth: 3
         next:
             attacker: A
             defender: B
             mixup: MixCorner
+-
+    name: SimpleFromCorner
+    path: Simple
+    score:
+        -
+            name: Win
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixFromCornerWin.txt
+        -
+            name: DamageDiff
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixFromCornerDamageDiff.txt
+        -
+            name: Damage
+            endstate: HealthZero
+            updater: Chipper
+            format: Detailed
+            path: SimpleMixFromCornerDamage.txt
+    context:
+        set:
+            AHealth: 3
+            BHealth: 3
+        next:
+            attacker: A
+            defender: B
+            mixup: MixFromCorner

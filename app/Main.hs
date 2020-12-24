@@ -122,7 +122,7 @@ program config = do
 --                             ]
 --                 ]
     let gametrees = startEvalMemo . traverse (gamifyTree scoreLookup) $ contexttrees
-    putStrLn "Analysed context trees, using their respective Score modules!"
+    putStrLn $ "Analysed context trees, using their respective Score modules! The next step may take a moment to begin."
     
     mapM_ (exportTree printerLookup) gametrees
     putStrLn "Done!"
@@ -165,7 +165,7 @@ program config = do
         exportTree :: Map Text Printer -> (TreeGame, ScoreData) -> IO ()
         exportTree fs (tree, sdata) = do
             let filename = makeValid . unpack . outPath $ sdata
-            putStrLn $! "Exporting to out/" ++ filename
+            putStrLn $ "Exporting to out/" ++ filename
 --             let treedepth = foldTree treeDepthFolder $ tree
 --             putStrLn $ "Tree depth: " ++ (show treedepth)
 --             when (treedepth > 10000) $ putStrLn "Oh no…"
