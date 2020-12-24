@@ -1,0 +1,94 @@
+-
+    attacker: Lum
+    defender: Grave
+    mixups:
+        -
+            name: PunishThrow
+            attackerOptions:
+                -
+                    name: FThrow
+                -
+                    name: BThrow
+            outcomes:
+                -
+                    attackerOption: FThrow
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Lum
+                        defender: Grave
+                        mixup: OkiFThrow
+                -
+                    attackerOption: BThrow
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Lum
+                        mixup: OkiBThrow
+        -
+            name: PunishThrowOrJumpin
+            attackerOptions:
+                -
+                    name: JumpinB
+                -
+                    name: JumpinC
+                -
+                    name: FThrow
+                -
+                    name: BThrow
+            outcomes:
+                -
+                    attackerOption: JumpinB
+                    set:
+                        BChip: 0
+                    add:
+                        BHealth: -3
+                -
+                    attackerOption: JumpinC
+                    set:
+                        BChip: 0
+                    add:
+                        BHealth: -2
+                    next:
+                        attacker: Lum
+                        defender: Grave
+                        mixup: ItemClose
+                -
+                    attackerOption: FThrow
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Lum
+                        defender: Grave
+                        mixup: OkiFThrow
+                -
+                    attackerOption: BThrow
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Lum
+                        mixup: OkiBThrow
+        -
+            name: PunishStrikeThrow
+            attackerOptions:
+                - StrikeB
+                - StrikeC
+                - FThrow
+                - BThrow
+            outcomes:
+                -
+                    attackerOption: StrikeB
+                    set:
+                        BChip: 0
+                    add:
+                        BHealth: -2
+                -
+                    attackerOption: StrikeC
+                    set:
+                        BChip: 0
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Lum
+                        defender: Grave
+                        mixup: ItemClose

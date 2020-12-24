@@ -1,0 +1,70 @@
+-
+    attacker: Valerie
+    defender: DeGrey
+    mixups:
+        -
+            name: MagentaBlocked
+            attackerOptions:
+                -
+                    name: FYellow
+                -
+                    name: NYellow
+                -
+                    name: BYellow
+                -
+                    name: Rainbow
+                -
+                    name: Empty
+                -
+                    name: Super
+            defenderOptions:
+                -
+                    name: Block
+                -
+                    name: FBlock
+                -
+                    name: Jab
+                -
+                    name: Truuuth!!!
+                -
+                    name: Ghost
+                -
+                    name: Jumpin
+                -
+                    name: Parry
+                    requires:
+                        BSuper: 1
+            outcomes:
+                -
+                    attackerOption: FYellow
+                    defenderOption: Block
+                    set:
+                        BChip: 0
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: Valerie
+                        defender: DeGrey
+                        mixup: YellowBlocked
+        -
+            name: YellowBlocked
+            attackerOptions:
+                -
+                    name: BCyan
+                -
+                    name: Delay Cyan
+                -
+                    name: Rainbow
+                -
+                    name: Super
+                -
+                    name: Block
+                    requires:
+                        ASuper: 1
+            defenderOptions:
+                -
+                    name: Punch
+                -
+                    name: Throw
+                -
+                    
