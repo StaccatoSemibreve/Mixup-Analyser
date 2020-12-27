@@ -36,16 +36,15 @@ import Control.Monad.Reader
 main :: IO ()
 main = do
     args <- getArgs >>= opts
-    putStrLn . show $ args
     runReaderT program . flags . fst $ args
 
-program :: ReaderT Flags IO ()
+program :: FlagReader ()
 program = do
     env <- environment
     let seeds = runReader plantTrees env
-    liftIO . putStrLn $ "Planted context trees!"
-    liftIO . mapM_ (runReaderT treeThingy) $ seeds
-    liftIO . putStrLn $ "Done!"
+    logger "Planted context trees!"
+    mapM_ (runReaderT treeThingy) $ seeds
+    logger "Done!"
     where
         findFiles :: String -> IO ([String])
         findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
@@ -63,7 +62,7 @@ program = do
                     fE      <- fmap ($ endName sdata) $ getModule "Tried to get a nonexistent endstate" enddata
                     fU      <- fmap ($ updateName sdata) $ getModule "Tried to get a nonexistent updater" updata
                     fP      <- fmap ($ outType sdata) $ getModule "Tried to get a nonexistent printer" printdata
-                    return $ ModuleDatum mdata fS fE fU fP (outPath sdata) (context instr)
+                    return $ ModuleDatum (name instr) mdata fS fE fU fP (outPath sdata) (context instr)
         growTree :: ModuleReader TreeContext
         growTree = asks outcomesToContextTree
         gamifyTree :: TreeContext -> TreeMemoT ModuleReader TreeGame
@@ -72,12 +71,13 @@ program = do
         exportTree tree = do
             mods <- ask
             let filename = makeValid . unpack . printpath $ mods
-            liftIO . putStrLn $ "Exporting to out/" ++ filename
-            liftIO . writeFile ("out/" ++ (unpack . printpath $ mods)) . unpack . (printdatum mods) $ tree
+            lift $ logger $ "Exporting to out/" ++ filename
+            lift $ writer (unpack . printpath $ mods) . unpack . (printdatum mods) $ tree
         treeThingy :: ModuleReader ()
         treeThingy = do
-            growntrees <- growTree
-            liftIO . putStrLn $ "Grown context trees, using their respective EndState and Updater modules!"
-            gametrees <- startEvalMemoT . gamifyTree $ growntrees
-            liftIO . putStrLn $ "Analysed context trees, using their respective Score modules! The next step may take a moment to begin."
-            exportTree gametrees
+            mods <- ask
+            growntree <- growTree
+            lift $ logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
+            gametree <- startEvalMemoT . gamifyTree $ growntree
+            lift $ logger "Analysed context trees, using their respective Score modules! The next step may take a moment to begin."
+            exportTree gametree

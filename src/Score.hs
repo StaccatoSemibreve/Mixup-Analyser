@@ -3,11 +3,14 @@ module Score
     , EndState
     , Updater
     , Printer
-    , ModuleDatum (ModuleDatum, mixdatum, scoredatum, enddatum, updatum, printdatum, printpath, outdatum)
+    , ModuleDatum (ModuleDatum, namedatum, mixdatum, scoredatum, enddatum, updatum, printdatum, printpath, outdatum)
     , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata, instrdata)
     , ModuleReader
+    , FlagReader
     , environment
     , getModule
+    , logger
+    , writer
     ) where
 
 import Contexts
@@ -19,7 +22,7 @@ import Control.Monad
 import Data.List
 import Data.List.Split
 import Data.Text (Text, pack, unpack)
-import System.Directory (listDirectory)
+import System.Directory (listDirectory, createDirectoryIfMissing)
 import System.FilePath (makeValid)
 import Language.Haskell.Interpreter
 import qualified Language.Haskell.Interpreter as I
@@ -34,10 +37,10 @@ type EndState = Context -> Bool
 type Updater = Context -> Context
 type Printer = TreeGame -> Text
 
-score :: String -> IO (Either InterpreterError Score)
-score name = runInterpreter $ do
+score :: FilePath -> String -> IO (Either InterpreterError Score)
+score dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
-                loadModules ["score/" ++ name ++ ".hs"]
+                loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
@@ -47,10 +50,10 @@ score name = runInterpreter $ do
                 
                 interpret ("score") (as :: Score)
 
-end :: String -> IO (Either InterpreterError EndState)
-end name = runInterpreter $ do
+end :: FilePath -> String -> IO (Either InterpreterError EndState)
+end dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
-                loadModules ["endstate/" ++ name ++ ".hs"]
+                loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
@@ -60,10 +63,10 @@ end name = runInterpreter $ do
                 
                 interpret ("end") (as :: EndState)
 
-update :: String -> IO (Either InterpreterError Updater)
-update name = runInterpreter $ do
+update :: FilePath -> String -> IO (Either InterpreterError Updater)
+update dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
-                loadModules ["updater/" ++ name ++ ".hs"]
+                loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
@@ -73,10 +76,10 @@ update name = runInterpreter $ do
                 
                 interpret ("update") (as :: Updater)
 
-printer :: String -> IO (Either InterpreterError Printer)
-printer name = runInterpreter $ do
+printer :: FilePath -> String -> IO (Either InterpreterError Printer)
+printer dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
-                loadModules ["printer/" ++ name ++ ".hs"]
+                loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Game" NotQualified NoImportList
@@ -96,7 +99,8 @@ printer name = runInterpreter $ do
                 interpret ("printer") (as :: Printer)
 
 data ModuleDatum =
-    ModuleDatum { mixdatum :: MixupData
+    ModuleDatum { namedatum :: Text
+                , mixdatum :: MixupData
                 , scoredatum :: Score
                 , enddatum :: EndState
                 , updatum :: Updater
@@ -112,14 +116,16 @@ data ModuleData =
                , printdata :: Map Text Printer
                , instrdata :: [Instruction]
     }
-type ModuleReader = ReaderT ModuleDatum IO
+type ModuleReader = ReaderT ModuleDatum FlagReader
+type FlagReader = ReaderT Flags IO
 
-environment :: ReaderT Flags IO ModuleData
+environment :: FlagReader ModuleData
 environment = do
+    resetLog
     args <- ask
     instructions <- liftIO . readInstructions . flagConfig $ args
-    liftIO $ if null instructions then error ("No instructions found in " ++ (flagConfig args) ++ "!") else putStrLn ("Found instructions in " ++ (flagConfig args) ++ ":")
-    liftIO . mapM_ putStrLn . map (\instr -> "- " ++ (unpack . Parse.name $ instr)) $ instructions
+    if null instructions then error ("No instructions found in " ++ (flagConfig args) ++ "!") else logger ("Found instructions in " ++ (flagConfig args) ++ ":")
+    mapM_ logger . map (\instr -> "- " ++ (unpack . Parse.name $ instr)) $ instructions
     
     let instrScoreData = nub . map scores $ instructions
     let instrScores = nub . concat . map (map $ unpack . scoreName) $ instrScoreData
@@ -127,13 +133,13 @@ environment = do
     let instrUpdaters = nub . concat . map (map $ unpack . updateName) $ instrScoreData
     let instrPrinters = nub . concat . map (map $ unpack . outType) $ instrScoreData
     let instrData = nub . (map $ unpack . path) $ instructions
-    liftIO . putStrLn $ "Read instructions!"
+    logger "Read instructions!"
     
-    foundScores     <- liftIO $ findFiles "score"
-    foundEnds       <- liftIO $ findFiles "endstate"
-    foundUpdaters   <- liftIO $ findFiles "updater"
-    foundPrinters   <- liftIO $ findFiles "printer"
-    foundData       <- liftIO $ findFiles "in"
+    foundScores     <- liftIO $ findFiles . flagScores $ args
+    foundEnds       <- liftIO $ findFiles . flagEndStates $ args
+    foundUpdaters   <- liftIO $ findFiles . flagUpdaters $ args
+    foundPrinters   <- liftIO $ findFiles . flagPrinters $ args
+    foundData       <- liftIO $ findFiles . flagIn $ args
     
     let reqScores = filter (`elem` instrScores) . nub $ foundScores
     let reqEnds = filter (`elem` instrEnds) . nub $ foundEnds
@@ -141,53 +147,69 @@ environment = do
     let reqPrinters = filter (`elem` instrPrinters) . nub $ foundPrinters
     let reqData = filter (`elem` instrData) . nub $ foundData
     
-    unless (null $ instrScores \\ reqScores) $ error $ "Required Score modules missing in /score! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrScores \\ reqScores)
-    liftIO $ putStrLn "Required Score modules:"
-    liftIO . mapM_ putStrLn . map ("- "++) $  reqScores
+    unless (null $ instrScores \\ reqScores) $ error $ "Required Score modules missing in /" ++ (flagScores args) ++ "! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrScores \\ reqScores)
+    logger "Required Score modules:"
+    mapM_ logger . map ("- "++) $  reqScores
     
-    unless (null $ instrEnds \\ reqEnds) $ error $ "Required EndState modules missing in /endstate! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrEnds \\ reqEnds)
-    liftIO $ putStrLn "Required EndState modules:"
-    liftIO . mapM_ putStrLn . map ("- "++) $  reqEnds
+    unless (null $ instrEnds \\ reqEnds) $ error $ "Required EndState modules missing in /" ++ (flagEndStates args) ++ "! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrEnds \\ reqEnds)
+    logger "Required EndState modules:"
+    mapM_ logger . map ("- "++) $  reqEnds
     
-    unless (null $ instrUpdaters \\ reqUpdaters) $ error $ "Required Updater modules missing in /updater! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrUpdaters \\ reqUpdaters)
-    liftIO $ putStrLn "Required Updater modules:"
-    liftIO . mapM_ putStrLn . map ("- "++) $  reqUpdaters
+    unless (null $ instrUpdaters \\ reqUpdaters) $ error $ "Required Updater modules missing in /" ++ (flagUpdaters args) ++ "! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrUpdaters \\ reqUpdaters)
+    logger "Required Updater modules:"
+    mapM_ logger . map ("- "++) $  reqUpdaters
     
-    unless (null $ instrPrinters \\ reqPrinters) $ error $ "Required Printer modules missing in /printer! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrPrinters \\ reqPrinters)
-    liftIO $ putStrLn "Required Printer modules:"
-    liftIO . mapM_ putStrLn . map ("- "++) $  reqPrinters
+    unless (null $ instrPrinters \\ reqPrinters) $ error $ "Required Printer modules missing in /" ++ (flagPrinters args) ++ "! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrPrinters \\ reqPrinters)
+    logger "Required Printer modules:"
+    mapM_ logger . map ("- "++) $  reqPrinters
     
-    unless (null $ instrData \\ reqData) $ error $ "Required input data missing in /in! Missing files: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrData \\ reqData)
-    liftIO $ putStrLn "Required input data:"
-    liftIO . mapM_ putStrLn . map ("- "++) $ reqData
+    unless (null $ instrData \\ reqData) $ error $ "Required input data missing in /" ++ (flagIn args) ++ "! Missing files: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrData \\ reqData)
+    logger "Required input data:"
+    mapM_ logger . map ("- "++) $ reqData
     
-    parsedScores <- liftIO $ mapM (parseScript score) reqScores
-    liftIO $ putStrLn "Parsed all required Score modules!"
-    parsedEnds <- liftIO $ mapM (parseScript end) reqEnds
-    liftIO $ putStrLn "Parsed all required EndState modules!"
-    parsedUpdaters <- liftIO $ mapM (parseScript update) reqUpdaters
-    liftIO $ putStrLn "Parsed all required Updater modules!"
-    parsedPrinters <- liftIO $ mapM (parseScript printer) reqPrinters
-    liftIO $ putStrLn "Parsed all required Printer modules!"
-    parsedData <- liftIO $ mapM parseData reqData
-    liftIO $ putStrLn "Parsed all required input data!"
+    parsedScores <- liftIO $ mapM (parseScript score (flagScores args)) reqScores
+    logger "Parsed all required Score modules!"
+    parsedEnds <- liftIO $ mapM (parseScript end (flagEndStates args)) reqEnds
+    logger "Parsed all required EndState modules!"
+    parsedUpdaters <- liftIO $ mapM (parseScript update (flagUpdaters args)) reqUpdaters
+    logger "Parsed all required Updater modules!"
+    parsedPrinters <- liftIO $ mapM (parseScript printer (flagPrinters args)) reqPrinters
+    logger "Parsed all required Printer modules!"
+    parsedData <- liftIO $ mapM (\file -> parseData $ flagIn args ++ "/" ++ file) reqData
+    logger "Parsed all required input data!"
     
     let scoreLookup = Map.fromList . zip (map pack reqScores) $! parsedScores
     let endLookup = Map.fromList . zip (map pack reqEnds) $! parsedEnds
     let updaterLookup = Map.fromList . zip (map pack reqUpdaters) $! parsedUpdaters
     let printerLookup = Map.fromList . zip (map pack reqPrinters) $! parsedPrinters
     let dataLookup = Map.fromList . zip (map pack reqData) $! parsedData
-    liftIO $ putStrLn "Created lookup tables!"
+    logger "Created lookup tables!"
     
     return $ ModuleData dataLookup scoreLookup endLookup updaterLookup printerLookup instructions
     where
         findFiles :: String -> IO ([String])
         findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
         
-        parseScript :: Show a => (String -> IO (Either a b)) -> String -> IO b
-        parseScript f = fmap (either (\e -> error . show $ e) id) . f
+        parseScript :: Show a => (FilePath -> String -> IO (Either a b)) -> FilePath -> String -> IO b
+        parseScript f dir file = fmap (either (\e -> error . show $ e) id) . f dir $ file
 
 getModule :: (Monad b) => String -> (ModuleData -> Map Text a) -> ReaderT ModuleData b (Text -> a)
 getModule err f = do
     env <- ask
     return (\t -> fromMaybe (error $ err ++ ": " ++ (unpack t)) . Map.lookup t . f $ env)
+
+resetLog :: FlagReader ()
+resetLog = do
+    f <- fmap flagLog ask
+    liftIO $ writeFile f ""
+logger :: String -> FlagReader ()
+logger s = do
+    v <- fmap flagVerbose ask
+    f <- fmap flagLog ask
+    when v . liftIO . putStrLn $ s
+    liftIO . appendFile f . ("\n"++) $ s
+writer :: FilePath -> String -> FlagReader ()
+writer path s = do
+    outdir <- fmap flagOut ask
+    liftIO $ createDirectoryIfMissing True outdir
+    liftIO $ writeFile (outdir ++ "/" ++ path) s

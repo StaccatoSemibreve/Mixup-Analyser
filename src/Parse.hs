@@ -152,7 +152,7 @@ readInstructions :: String -> IO ([Instruction])
 readInstructions = readYAML
 
 parseData :: FilePath -> IO (MixupData)
-parseData = fmap (\mixes -> Map.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (NextMixup a d (mixupNameParsed m), unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml") . ("in/"++)
+parseData = fmap (\mixes -> Map.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (NextMixup a d (mixupNameParsed m), unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml")
 
 -- from here onward, we're transforming parsed data into more useful variants with maps and such
 
