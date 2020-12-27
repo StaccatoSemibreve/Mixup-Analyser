@@ -37,39 +37,33 @@ main :: IO ()
 main = do
     args <- getArgs >>= opts
     putStrLn . show $ args
-    program args
+    runReaderT program . flags . fst $ args
 
-program :: ([Flag], [String]) -> IO ()
-program args = do
-    let (Config config) = Config "config.yaml"
-    instructions <- readInstructions config
-    if null instructions then error ("No instructions found in " ++ config ++ "!") else putStrLn "Found instructions in config.yaml:"
-    mapM_ putStrLn . map (\instr -> "- "++(unpack . name $ instr)) $ instructions
-    
-    env <- environment instructions
-    
-    let seeds = (flip runReader) env . plantTrees $ instructions
-    putStrLn "Planted context trees!"
-    
-    mapM_ (runReaderT treeThingy) seeds
-    putStrLn "Done!"
+program :: ReaderT Flags IO ()
+program = do
+    env <- environment
+    let seeds = runReader plantTrees env
+    liftIO . putStrLn $ "Planted context trees!"
+    liftIO . mapM_ (runReaderT treeThingy) $ seeds
+    liftIO . putStrLn $ "Done!"
     where
         findFiles :: String -> IO ([String])
         findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
         
-        plantTrees :: [Instruction] -> Reader ModuleData [ModuleDatum]
-        plantTrees instrs = do
+        plantTrees :: Reader ModuleData [ModuleDatum]
+        plantTrees = do
+            instrs <- fmap instrdata ask
             unflatTrees <- mapM (\instr -> sequence . map (seed instr) . scores $ instr) instrs
             return . concat $ unflatTrees
             where
-        seed :: Instruction -> ScoreData -> Reader ModuleData ModuleDatum
-        seed instr sdata = do
-            mdata   <- fmap ($ path instr) $ getModule "Tried to get nonexistent input data" mixdata
-            fS      <- fmap ($ scoreName sdata) $ getModule "Tried to get a nonexistent score" scoredata
-            fE      <- fmap ($ endName sdata) $ getModule "Tried to get a nonexistent endstate" enddata
-            fU      <- fmap ($ updateName sdata) $ getModule "Tried to get a nonexistent updater" updata
-            fP      <- fmap ($ outType sdata) $ getModule "Tried to get a nonexistent printer" printdata
-            return $ ModuleDatum mdata fS fE fU fP (outPath sdata) (context instr)
+                seed :: Instruction -> ScoreData -> Reader ModuleData ModuleDatum
+                seed instr sdata = do
+                    mdata   <- fmap ($ path instr) $ getModule "Tried to get nonexistent input data" mixdata
+                    fS      <- fmap ($ scoreName sdata) $ getModule "Tried to get a nonexistent score" scoredata
+                    fE      <- fmap ($ endName sdata) $ getModule "Tried to get a nonexistent endstate" enddata
+                    fU      <- fmap ($ updateName sdata) $ getModule "Tried to get a nonexistent updater" updata
+                    fP      <- fmap ($ outType sdata) $ getModule "Tried to get a nonexistent printer" printdata
+                    return $ ModuleDatum mdata fS fE fU fP (outPath sdata) (context instr)
         growTree :: ModuleReader TreeContext
         growTree = asks outcomesToContextTree
         gamifyTree :: TreeContext -> TreeMemoT ModuleReader TreeGame

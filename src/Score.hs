@@ -4,7 +4,7 @@ module Score
     , Updater
     , Printer
     , ModuleDatum (ModuleDatum, mixdatum, scoredatum, enddatum, updatum, printdatum, printpath, outdatum)
-    , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata)
+    , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata, instrdata)
     , ModuleReader
     , environment
     , getModule
@@ -12,6 +12,7 @@ module Score
 
 import Contexts
 import Parse
+import Args
 
 import Data.Maybe
 import Control.Monad
@@ -109,13 +110,16 @@ data ModuleData =
                , enddata :: Map Text EndState
                , updata :: Map Text Updater
                , printdata :: Map Text Printer
+               , instrdata :: [Instruction]
     }
 type ModuleReader = ReaderT ModuleDatum IO
 
-environment :: [Instruction] -> IO ModuleData
-environment instructions = do
-    if null instructions then error ("No instructions found in config!") else putStrLn "Found instructions in config.yaml:"
-    mapM_ putStrLn . map (\instr -> "- "++(unpack . Parse.name $ instr)) $ instructions
+environment :: ReaderT Flags IO ModuleData
+environment = do
+    args <- ask
+    instructions <- liftIO . readInstructions . flagConfig $ args
+    liftIO $ if null instructions then error ("No instructions found in " ++ (flagConfig args) ++ "!") else putStrLn ("Found instructions in " ++ (flagConfig args) ++ ":")
+    liftIO . mapM_ putStrLn . map (\instr -> "- " ++ (unpack . Parse.name $ instr)) $ instructions
     
     let instrScoreData = nub . map scores $ instructions
     let instrScores = nub . concat . map (map $ unpack . scoreName) $ instrScoreData
@@ -123,13 +127,13 @@ environment instructions = do
     let instrUpdaters = nub . concat . map (map $ unpack . updateName) $ instrScoreData
     let instrPrinters = nub . concat . map (map $ unpack . outType) $ instrScoreData
     let instrData = nub . (map $ unpack . path) $ instructions
-    putStrLn "Read instructions!"
+    liftIO . putStrLn $ "Read instructions!"
     
-    foundScores     <- findFiles "score"
-    foundEnds       <- findFiles "endstate"
-    foundUpdaters   <- findFiles "updater"
-    foundPrinters   <- findFiles "printer"
-    foundData       <- findFiles "in"
+    foundScores     <- liftIO $ findFiles "score"
+    foundEnds       <- liftIO $ findFiles "endstate"
+    foundUpdaters   <- liftIO $ findFiles "updater"
+    foundPrinters   <- liftIO $ findFiles "printer"
+    foundData       <- liftIO $ findFiles "in"
     
     let reqScores = filter (`elem` instrScores) . nub $ foundScores
     let reqEnds = filter (`elem` instrEnds) . nub $ foundEnds
@@ -138,44 +142,44 @@ environment instructions = do
     let reqData = filter (`elem` instrData) . nub $ foundData
     
     unless (null $ instrScores \\ reqScores) $ error $ "Required Score modules missing in /score! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrScores \\ reqScores)
-    putStrLn "Required Score modules:"
-    mapM_ putStrLn . map ("- "++) $  reqScores
+    liftIO $ putStrLn "Required Score modules:"
+    liftIO . mapM_ putStrLn . map ("- "++) $  reqScores
     
     unless (null $ instrEnds \\ reqEnds) $ error $ "Required EndState modules missing in /endstate! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrEnds \\ reqEnds)
-    putStrLn "Required EndState modules:"
-    mapM_ putStrLn . map ("- "++) $  reqEnds
+    liftIO $ putStrLn "Required EndState modules:"
+    liftIO . mapM_ putStrLn . map ("- "++) $  reqEnds
     
     unless (null $ instrUpdaters \\ reqUpdaters) $ error $ "Required Updater modules missing in /updater! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrUpdaters \\ reqUpdaters)
-    putStrLn "Required Updater modules:"
-    mapM_ putStrLn . map ("- "++) $  reqUpdaters
+    liftIO $ putStrLn "Required Updater modules:"
+    liftIO . mapM_ putStrLn . map ("- "++) $  reqUpdaters
     
     unless (null $ instrPrinters \\ reqPrinters) $ error $ "Required Printer modules missing in /printer! Missing modules: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrPrinters \\ reqPrinters)
-    putStrLn "Required Printer modules:"
-    mapM_ putStrLn . map ("- "++) $  reqPrinters
+    liftIO $ putStrLn "Required Printer modules:"
+    liftIO . mapM_ putStrLn . map ("- "++) $  reqPrinters
     
     unless (null $ instrData \\ reqData) $ error $ "Required input data missing in /in! Missing files: " ++ (foldl (\acc file -> acc ++ "\n- " ++ file) "" $ instrData \\ reqData)
-    putStrLn "Required input data:"
-    mapM_ putStrLn . map ("- "++) $ reqData
+    liftIO $ putStrLn "Required input data:"
+    liftIO . mapM_ putStrLn . map ("- "++) $ reqData
     
-    parsedScores <- mapM (parseScript score) reqScores
-    putStrLn "Parsed all required Score modules!"
-    parsedEnds <- mapM (parseScript end) reqEnds
-    putStrLn "Parsed all required EndState modules!"
-    parsedUpdaters <- mapM (parseScript update) reqUpdaters
-    putStrLn "Parsed all required Updater modules!"
-    parsedPrinters <- mapM (parseScript printer) reqPrinters
-    putStrLn "Parsed all required Printer modules!"
-    parsedData <- mapM parseData reqData
-    putStrLn "Parsed all required input data!"
+    parsedScores <- liftIO $ mapM (parseScript score) reqScores
+    liftIO $ putStrLn "Parsed all required Score modules!"
+    parsedEnds <- liftIO $ mapM (parseScript end) reqEnds
+    liftIO $ putStrLn "Parsed all required EndState modules!"
+    parsedUpdaters <- liftIO $ mapM (parseScript update) reqUpdaters
+    liftIO $ putStrLn "Parsed all required Updater modules!"
+    parsedPrinters <- liftIO $ mapM (parseScript printer) reqPrinters
+    liftIO $ putStrLn "Parsed all required Printer modules!"
+    parsedData <- liftIO $ mapM parseData reqData
+    liftIO $ putStrLn "Parsed all required input data!"
     
     let scoreLookup = Map.fromList . zip (map pack reqScores) $! parsedScores
     let endLookup = Map.fromList . zip (map pack reqEnds) $! parsedEnds
     let updaterLookup = Map.fromList . zip (map pack reqUpdaters) $! parsedUpdaters
     let printerLookup = Map.fromList . zip (map pack reqPrinters) $! parsedPrinters
     let dataLookup = Map.fromList . zip (map pack reqData) $! parsedData
-    putStrLn "Created lookup tables!"
+    liftIO $ putStrLn "Created lookup tables!"
     
-    return $ ModuleData dataLookup scoreLookup endLookup updaterLookup printerLookup
+    return $ ModuleData dataLookup scoreLookup endLookup updaterLookup printerLookup instructions
     where
         findFiles :: String -> IO ([String])
         findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
