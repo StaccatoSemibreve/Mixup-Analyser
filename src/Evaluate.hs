@@ -5,6 +5,7 @@
 module Evaluate
     ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
     , treeScoreFolder -- the function to use in foldTree when folding across scored outcomes
+    , TreeMemoT
     ) where
 
 import Contexts
@@ -19,7 +20,7 @@ import Data.Text (Text, unpack)
 import Data.Tree
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Monad.Memo (MonadMemo, memo)
+import Control.Monad.Memo (MemoT, memo)
 import qualified Control.Monad.Memo as Memo
 import Control.Monad.Reader
 
@@ -82,11 +83,13 @@ outcomesToContextTree mods = unfoldTree unfolder (Outcome newContext (outdatum m
             let (newcontext, mixmaybe, mnext) = recontextMix (mixdatum mods) (enddatum mods) (updatum mods) (startContext o) (result o)
             ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
-treeScoreFolder :: (MonadMemo [(Opt, Opt, Double)] Result m) => ModuleDatum -> TreeContextItem -> [m TreeGameItem] -> m TreeGameItem
-treeScoreFolder mods (mnext,a,b,c) [] = do
+type TreeMemoT = MemoT [(Opt, Opt, Double)] Result
+treeScoreFolder :: TreeContextItem -> [TreeMemoT ModuleReader TreeGameItem] -> TreeMemoT ModuleReader TreeGameItem
+treeScoreFolder (mnext,a,b,c) [] = do
+    mods <- lift ask
     res <- memo (pure . solveComplexCore) [(a,b,scoredatum mods $ c)]
     return (c,a,b, GameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,scoredatum mods $ c)] . Just . resultComplex [(a,b,scoredatum mods $ c)] $ res)
-treeScoreFolder _ (mnext,a,b,c) subgamesM = do
+treeScoreFolder (mnext,a,b,c) subgamesM = do
     evs <- map (\(_, o1, o2, g) -> (o1, o2, resCEV . fromMaybe (error "???") . outcomesC $ g)) <$> sequence subgamesM
     res <- memo (pure . solveComplexCore) evs
     return (c,a,b, GameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs . Just . resultComplex evs $ res)

@@ -3,16 +3,11 @@ module Score
     , EndState
     , Updater
     , Printer
-    , ModuleData
-    , Modules
-    , ModulesT
-    , environment
-    , getData
-    , getScore
-    , getEnd
-    , getUpdater
-    , getPrinter
     , ModuleDatum (ModuleDatum, mixdatum, scoredatum, enddatum, updatum, printdatum, printpath, outdatum)
+    , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata)
+    , ModuleReader
+    , environment
+    , getModule
     ) where
 
 import Contexts
@@ -115,8 +110,7 @@ data ModuleData =
                , updata :: Map Text Updater
                , printdata :: Map Text Printer
     }
-type Modules = Reader ModuleData
-type ModulesT = ReaderT ModuleData
+type ModuleReader = ReaderT ModuleDatum IO
 
 environment :: [Instruction] -> IO ModuleData
 environment instructions = do
@@ -189,17 +183,7 @@ environment instructions = do
         parseScript :: Show a => (String -> IO (Either a b)) -> String -> IO b
         parseScript f = fmap (either (\e -> error . show $ e) id) . f
 
-getModule :: (Monad b) => String -> (ModuleData -> Map Text a) -> ModulesT b (Text -> a)
+getModule :: (Monad b) => String -> (ModuleData -> Map Text a) -> ReaderT ModuleData b (Text -> a)
 getModule err f = do
     env <- ask
     return (\t -> fromMaybe (error $ err ++ ": " ++ (unpack t)) . Map.lookup t . f $ env)
-getData :: (Monad a) => ModulesT a (Text -> MixupData)
-getData = getModule "Tried to get nonexistent input data" mixdata
-getScore :: (Monad a) => ModulesT a (Text -> Score)
-getScore = getModule "Tried to get a nonexistent score" scoredata
-getEnd :: (Monad a) => ModulesT a (Text -> EndState)
-getEnd = getModule "Tried to get a nonexistent endstate" enddata
-getUpdater :: (Monad a) => ModulesT a (Text -> Updater)
-getUpdater = getModule "Tried to get a nonexistent updater" updata
-getPrinter :: (Monad a) => ModulesT a (Text -> Printer)
-getPrinter = getModule "Tried to get a nonexistent printer" printdata
