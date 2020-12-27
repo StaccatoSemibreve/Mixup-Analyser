@@ -12,15 +12,30 @@ module Parse
     , MixupData -- a map from (attacker, defender, mixup name) to mixups
     , Option (Option, optionName, optionWeight, require, antirequire) -- a specific option for one of the players to use, Maybe including a fixed weight (otherwise, the weight is calculated using Game)
     , NextMixup (NextMixup, nextM, nextAtt, nextDef) -- the next place to go after this mixup, Maybe listed in the Recontext under next
+    , Opt
+    , TreeContextItem
+    , TreeContext
+    , TreeGameItem
+    , TreeGame
+    , TreeScore
     ) where
 
 import Contexts
+import Game
 
 import Data.YAML
 import Data.Text (Text, unpack)
 import qualified Data.ByteString.Lazy as B
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Tree
+
+type Opt = (Text, Maybe Double)
+type TreeContextItem = (Maybe NextMixup, Opt, Opt, Context)
+type TreeContext = Tree TreeContextItem
+type TreeGameItem = (Context, Opt, Opt, GameComplex)
+type TreeGame = Tree TreeGameItem
+type TreeScore = Tree (Opt, Opt, Double)
 
 data ScoreData =
     ScoreData { scoreName::Text

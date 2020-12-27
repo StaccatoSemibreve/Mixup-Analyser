@@ -1,20 +1,16 @@
 -- manipulates the yaml data into the relevant data trees, evaluates from that
--- TODO: memoisation
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Evaluate
     ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
     , treeScoreFolder -- the function to use in foldTree when folding across scored outcomes
-    , treeScoreFolderM
-    , TreeContext
-    , TreeGame
-    , Opt
     ) where
 
 import Contexts
 import Parse
 import Game
+import Score
 
 import Data.List
 import Data.Maybe
@@ -25,12 +21,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Memo (MonadMemo, memo)
 import qualified Control.Monad.Memo as Memo
-
-
-type Score = Context -> Double
-type EndState = Context -> Bool
-type Updater = Context -> Context
-type Printer = TreeGame -> Text
+import Control.Monad.Reader
 
 -- a Recontext with Maybe specified weights, because we need those!
 data Outcome =
@@ -46,12 +37,6 @@ data MixupFiltered =
                   , outcomesFiltered::[Outcome]
     } deriving (Eq, Show)
 
-type Opt = (Text, Maybe Double)
-type TreeContextItem = (Maybe NextMixup, Opt, Opt, Context)
-type TreeContext = Tree TreeContextItem
-type TreeGameItem = (Context, Opt, Opt, GameComplex)
-type TreeGame = Tree TreeGameItem
-type TreeScore = Tree (Opt, Opt, Double)
 
 -- take a Mixup, filter it or just give a context if it would be empty
 mixupFilter :: Context -> Maybe Mixup -> Either (Text, Context) MixupFiltered
@@ -89,33 +74,19 @@ recontextMix mgroups endCheck contextUpdate con r = (\newcon -> (newcon, if endC
         errMix (NextMixup att def mix) = error $ "No mixups with required attacker (" ++ (unpack att) ++ ") and defender (" ++ (unpack def) ++ ") called '" ++ (unpack mix) ++ "' found."
 
 -- take the mixup data, the mixup name, the current context, and the list of outcomes - return a Tree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate), also carry through the NextMixup metadata for readability
-outcomesToContextTree :: MixupData -> (Context -> Bool) -> (Context -> Context) -> Instruction -> TreeContext
-outcomesToContextTree mgroup f1 f2 (Instruction _ _ _ out) = unfoldTree unfolder (Outcome newContext out Nothing Nothing)
+outcomesToContextTree :: ModuleDatum -> TreeContext
+outcomesToContextTree mods = unfoldTree unfolder (Outcome newContext (outdatum mods) Nothing Nothing)
     where
---         unfolderm :: (MonadMemo Outcome (TreeContextItem, [Outcome]) m) => Outcome -> m (TreeContextItem, [Outcome])
---         unfolderm o = do
---             let (newcontext, mixmaybe, mnext) = recontextMix mgroup f1 f2 (startContext o) (result o)
---             return ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
-            
-        
         unfolder :: Outcome -> (TreeContextItem, [Outcome])
         unfolder o = do
-            let (newcontext, mixmaybe, mnext) = recontextMix mgroup f1 f2 (startContext o) (result o)
+            let (newcontext, mixmaybe, mnext) = recontextMix (mixdatum mods) (enddatum mods) (updatum mods) (startContext o) (result o)
             ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe)
 
--- the fold function should first convert the summary values (of type (Opt, Opt, GameComplex)) to their EVs (Opt, Opt, Double), then turn those EVs into an (Opt, Opt, GameComplex {gameCName::Text, gameData::[((Text, Maybe Double), (Text, Maybe Double), Double)], outcomesC::(Maybe Result)}), also carry through the NextMixup metadata for readability
-treeScoreFolder :: Score -> TreeContextItem -> [TreeGameItem] -> TreeGameItem
-treeScoreFolder score (mnext,a,b,c) [] = (c,a,b, solveComplex $ gameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)])
-treeScoreFolder score (mnext,a,b,c) subgames = let
-                                                   evs = map (\(_, o1, o2, g) -> (o1, o2, resCEV . fromMaybe (error "???") . outcomesC $ g)) subgames
-                                               in
-                                                   (c,a,b, solveComplex $ gameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs)
-
-treeScoreFolderM :: (MonadMemo [(Opt, Opt, Double)] Result m) => Score -> TreeContextItem -> [m TreeGameItem] -> m TreeGameItem
-treeScoreFolderM score (mnext,a,b,c) [] = do
-    res <- memo (pure . solveComplexCore) [(a,b,score c)]
-    return (c,a,b, GameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,score c)] . Just . resultComplex [(a,b,score c)] $ res)
-treeScoreFolderM score (mnext,a,b,c) subgamesM = do
+treeScoreFolder :: (MonadMemo [(Opt, Opt, Double)] Result m) => ModuleDatum -> TreeContextItem -> [m TreeGameItem] -> m TreeGameItem
+treeScoreFolder mods (mnext,a,b,c) [] = do
+    res <- memo (pure . solveComplexCore) [(a,b,scoredatum mods $ c)]
+    return (c,a,b, GameComplex "" (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) [(a,b,scoredatum mods $ c)] . Just . resultComplex [(a,b,scoredatum mods $ c)] $ res)
+treeScoreFolder _ (mnext,a,b,c) subgamesM = do
     evs <- map (\(_, o1, o2, g) -> (o1, o2, resCEV . fromMaybe (error "???") . outcomesC $ g)) <$> sequence subgamesM
     res <- memo (pure . solveComplexCore) evs
     return (c,a,b, GameComplex (fromMaybe "" . fmap nextM $ mnext) (fromMaybe "" . fmap nextAtt $ mnext) (fromMaybe "" . fmap nextDef $ mnext) evs . Just . resultComplex evs $ res)

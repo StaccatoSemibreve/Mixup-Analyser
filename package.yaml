@@ -35,6 +35,7 @@ dependencies:
 - formatting == 6.3.7
 - monad-memo
 - criterion
+- mtl
 
 library:
   source-dirs: src

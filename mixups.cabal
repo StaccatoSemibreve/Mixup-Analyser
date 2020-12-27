@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Args
       Contexts
       Evaluate
       Game
@@ -48,6 +49,7 @@ library
     , hmatrix
     , lucid
     , monad-memo
+    , mtl
     , split
     , text
   default-language: Haskell2010
@@ -74,6 +76,7 @@ executable mixups-exe
     , lucid
     , mixups
     , monad-memo
+    , mtl
     , split
     , text
   default-language: Haskell2010
@@ -101,6 +104,7 @@ test-suite mixups-test
     , lucid
     , mixups
     , monad-memo
+    , mtl
     , split
     , text
   default-language: Haskell2010
