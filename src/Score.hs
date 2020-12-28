@@ -3,7 +3,7 @@ module Score
     , EndState
     , Updater
     , Printer
-    , ModuleDatum (ModuleDatum, namedatum, mixdatum, scoredatum, enddatum, updatum, printdatum, printpath, outdatum)
+    , ModuleDatum (ModuleDatum, namedatum, mixdatum, scoreattdatum, scoredefdatum, enddatum, updatum, printdatum, printpath, outdatum)
     , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata, instrdata)
     , ModuleReader
     , FlagReader
@@ -37,8 +37,8 @@ type EndState = Context -> Bool
 type Updater = Context -> Context
 type Printer = TreeGame -> Text
 
-score :: FilePath -> String -> IO (Either InterpreterError Score)
-score dir name = runInterpreter $ do
+parseScore :: FilePath -> String -> IO (Either InterpreterError Score)
+parseScore dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
@@ -50,8 +50,8 @@ score dir name = runInterpreter $ do
                 
                 interpret ("score") (as :: Score)
 
-end :: FilePath -> String -> IO (Either InterpreterError EndState)
-end dir name = runInterpreter $ do
+parseEndState :: FilePath -> String -> IO (Either InterpreterError EndState)
+parseEndState dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
@@ -63,8 +63,8 @@ end dir name = runInterpreter $ do
                 
                 interpret ("end") (as :: EndState)
 
-update :: FilePath -> String -> IO (Either InterpreterError Updater)
-update dir name = runInterpreter $ do
+parseUpdater :: FilePath -> String -> IO (Either InterpreterError Updater)
+parseUpdater dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
@@ -76,8 +76,8 @@ update dir name = runInterpreter $ do
                 
                 interpret ("update") (as :: Updater)
 
-printer :: FilePath -> String -> IO (Either InterpreterError Printer)
-printer dir name = runInterpreter $ do
+parsePrinter :: FilePath -> String -> IO (Either InterpreterError Printer)
+parsePrinter dir name = runInterpreter $ do
                 I.set [languageExtensions := [OverloadedStrings]]
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
@@ -101,7 +101,8 @@ printer dir name = runInterpreter $ do
 data ModuleDatum =
     ModuleDatum { namedatum :: Text
                 , mixdatum :: MixupData
-                , scoredatum :: Score
+                , scoreattdatum :: Score
+                , scoredefdatum :: Score
                 , enddatum :: EndState
                 , updatum :: Updater
                 , printdatum :: Printer
@@ -128,7 +129,7 @@ environment = do
     mapM_ logger . map (\instr -> "- " ++ (unpack . Parse.name $ instr)) $ instructions
     
     let instrScoreData = nub . map scores $ instructions
-    let instrScores = nub . concat . map (map $ unpack . scoreName) $ instrScoreData
+    let instrScores = nub . concat $ (map (map $ unpack . scoreNameAtt) instrScoreData ++ map (map $ unpack . scoreNameDef) instrScoreData)
     let instrEnds = nub . concat . map (map $ unpack . endName) $ instrScoreData
     let instrUpdaters = nub . concat . map (map $ unpack . updateName) $ instrScoreData
     let instrPrinters = nub . concat . map (map $ unpack . outType) $ instrScoreData
@@ -167,13 +168,13 @@ environment = do
     logger "Required input data:"
     mapM_ logger . map ("- "++) $ reqData
     
-    parsedScores <- liftIO $ mapM (parseScript score (flagScores args)) reqScores
+    parsedScores <- liftIO $ mapM (parseScript parseScore (flagScores args)) reqScores
     logger "Parsed all required Score modules!"
-    parsedEnds <- liftIO $ mapM (parseScript end (flagEndStates args)) reqEnds
+    parsedEnds <- liftIO $ mapM (parseScript parseEndState (flagEndStates args)) reqEnds
     logger "Parsed all required EndState modules!"
-    parsedUpdaters <- liftIO $ mapM (parseScript update (flagUpdaters args)) reqUpdaters
+    parsedUpdaters <- liftIO $ mapM (parseScript parseUpdater (flagUpdaters args)) reqUpdaters
     logger "Parsed all required Updater modules!"
-    parsedPrinters <- liftIO $ mapM (parseScript printer (flagPrinters args)) reqPrinters
+    parsedPrinters <- liftIO $ mapM (parseScript parsePrinter (flagPrinters args)) reqPrinters
     logger "Parsed all required Printer modules!"
     parsedData <- liftIO $ mapM (\file -> parseData $ flagIn args ++ "/" ++ file) reqData
     logger "Parsed all required input data!"
@@ -207,7 +208,7 @@ logger s = do
     v <- fmap flagVerbose ask
     f <- fmap flagLog ask
     when v . liftIO . putStrLn $ s
-    liftIO . appendFile f . ("\n"++) $ s
+    liftIO . appendFile f . (++"\n") $ s
 writer :: FilePath -> String -> FlagReader ()
 writer path s = do
     outdir <- fmap flagOut ask

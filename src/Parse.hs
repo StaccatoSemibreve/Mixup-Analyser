@@ -4,14 +4,14 @@
 module Parse
     ( readInstructions -- get every Instruction from run.yaml, so we can know where to start
     , parseData -- take a FileName, return all the relevant mixup data from the file it sends us to
-    , ScoreData (ScoreData, scoreName, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
+    , ScoreData (ScoreData, scoreNameAtt, scoreNameDef, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
     , Instruction (Instruction, name, path, scores, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
     , Context -- a lookup table of current game state, v important to track this!
     , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
-    , Mixup (Mixup, mname)
+    , Mixup (Mixup, mname, reqs, antireqs, attOptions, defOptions, outcomes)
     , MixupData -- a map from (attacker, defender, mixup name) to mixups
     , Option (Option, optionName, optionWeight, require, antirequire) -- a specific option for one of the players to use, Maybe including a fixed weight (otherwise, the weight is calculated using Game)
-    , NextMixup (NextMixup, nextM, nextAtt, nextDef) -- the next place to go after this mixup, Maybe listed in the Recontext under next
+    , MixupMetadata (MixupMetadata, metaName, metaAtt, metaDef) -- the next place to go after this mixup, Maybe listed in the Recontext under next
     , Opt
     , TreeContextItem
     , TreeContext
@@ -31,14 +31,15 @@ import qualified Data.Map as Map
 import Data.Tree
 
 type Opt = (Text, Maybe Double)
-type TreeContextItem = (Maybe NextMixup, Opt, Opt, Context)
+type TreeContextItem = (Maybe MixupMetadata, Opt, Opt, Context)
 type TreeContext = Tree TreeContextItem
-type TreeGameItem = (Context, Opt, Opt, GameComplex)
+type TreeGameItem = (Context, Opt, Opt, Game)
 type TreeGame = Tree TreeGameItem
 type TreeScore = Tree (Opt, Opt, Double)
 
 data ScoreData =
-    ScoreData { scoreName::Text
+    ScoreData { scoreNameAtt::Text
+              , scoreNameDef::Text
               , endName::Text
               , updateName::Text
               , outType::Text
@@ -47,7 +48,8 @@ data ScoreData =
 
 instance FromYAML ScoreData where
     parseYAML = withMap "ScoreData" $ \m -> ScoreData
-        <$> m .:    "name"
+        <$> m .:    "attacker"
+        <*> m .:    "defender"
         <*> m .:    "endstate"
         <*> m .:    "updater"
         <*> m .:    "format"
@@ -72,7 +74,7 @@ data Recontext =
               , rowOption::Text
               , set::Context
               , add::Context
-              , next::(Maybe NextMixup)
+              , next::(Maybe MixupMetadata)
     } deriving (Eq, Ord, Show)
 
 instance FromYAML Recontext where
@@ -83,17 +85,17 @@ instance FromYAML Recontext where
         <*> m .:? "add"             .!= newContext
         <*> m .:? "next"            .!= Nothing
 
-data NextMixup =
-    NextMixup { nextAtt::Text
-              , nextDef::Text
-              , nextM::Text
+data MixupMetadata =
+    MixupMetadata { metaName::Text
+                  , metaAtt ::Text
+                  , metaDef ::Text
     } deriving (Eq, Ord, Show)
 
-instance FromYAML NextMixup where
-    parseYAML = withMap "NextMixup" $ \m -> NextMixup
-        <$> m .: "attacker"
+instance FromYAML MixupMetadata where
+    parseYAML = withMap "MixupMetadata" $ \m -> MixupMetadata
+        <$> m .: "mixup"
+        <*> m .: "attacker"
         <*> m .: "defender"
-        <*> m .: "mixup"
 
 data MixupGroup =
     MixupGroup { attacker::Text
@@ -152,14 +154,14 @@ readInstructions :: String -> IO ([Instruction])
 readInstructions = readYAML
 
 parseData :: FilePath -> IO (MixupData)
-parseData = fmap (\mixes -> Map.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (NextMixup a d (mixupNameParsed m), unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml")
+parseData = fmap (\mixes -> Map.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (MixupMetadata (mixupNameParsed m) a d, unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml")
 
 -- from here onward, we're transforming parsed data into more useful variants with maps and such
 
 mapify :: Ord k => (v -> k) -> [v] -> Map k v
 mapify f = Map.fromList . map (\v -> (f v, v))
 
-type MixupData = Map NextMixup Mixup
+type MixupData = Map MixupMetadata Mixup
 
 data Mixup = 
     Mixup { mname :: Text

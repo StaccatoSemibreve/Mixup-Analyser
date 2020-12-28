@@ -46,9 +46,6 @@ program = do
     mapM_ (runReaderT treeThingy) $ seeds
     logger "Done!"
     where
-        findFiles :: String -> IO ([String])
-        findFiles = fmap (map $ concat . init . splitOn ".") . listDirectory . makeValid
-        
         plantTrees :: Reader ModuleData [ModuleDatum]
         plantTrees = do
             instrs <- fmap instrdata ask
@@ -57,27 +54,21 @@ program = do
             where
                 seed :: Instruction -> ScoreData -> Reader ModuleData ModuleDatum
                 seed instr sdata = do
-                    mdata   <- fmap ($ path instr) $ getModule "Tried to get nonexistent input data" mixdata
-                    fS      <- fmap ($ scoreName sdata) $ getModule "Tried to get a nonexistent score" scoredata
-                    fE      <- fmap ($ endName sdata) $ getModule "Tried to get a nonexistent endstate" enddata
-                    fU      <- fmap ($ updateName sdata) $ getModule "Tried to get a nonexistent updater" updata
-                    fP      <- fmap ($ outType sdata) $ getModule "Tried to get a nonexistent printer" printdata
-                    return $ ModuleDatum (name instr) mdata fS fE fU fP (outPath sdata) (context instr)
-        growTree :: ModuleReader TreeContext
-        growTree = asks outcomesToContextTree
-        gamifyTree :: TreeContext -> TreeMemoT ModuleReader TreeGame
-        gamifyTree = sequence . extend (foldTree treeScoreFolder)
-        exportTree :: TreeGame -> ModuleReader ()
-        exportTree tree = do
-            mods <- ask
-            let filename = makeValid . unpack . printpath $ mods
-            lift $ logger $ "Exporting to out/" ++ filename
-            lift $ writer (unpack . printpath $ mods) . unpack . (printdatum mods) $ tree
+                    mdata   <- fmap ($ path instr)          $ getModule "Tried to get nonexistent input data" mixdata
+                    fSA     <- fmap ($ scoreNameAtt sdata)  $ getModule "Tried to get a nonexistent score" scoredata
+                    fSD     <- fmap ($ scoreNameDef sdata)  $ getModule "Tried to get a nonexistent score" scoredata
+                    fE      <- fmap ($ endName sdata)       $ getModule "Tried to get a nonexistent endstate" enddata
+                    fU      <- fmap ($ updateName sdata)    $ getModule "Tried to get a nonexistent updater" updata
+                    fP      <- fmap ($ outType sdata)       $ getModule "Tried to get a nonexistent printer" printdata
+                    return $ ModuleDatum (name instr) mdata fSA fSD fE fU fP (outPath sdata) (context instr)
         treeThingy :: ModuleReader ()
         treeThingy = do
             mods <- ask
-            growntree <- growTree
+            flags <- lift ask
+            growntree <- outcomesToContextTree
             lift $ logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
-            gametree <- startEvalMemoT . gamifyTree $ growntree
-            lift $ logger "Analysed context trees, using their respective Score modules! The next step may take a moment to begin."
-            exportTree gametree
+            gametree <- startEvalMemoT . sequence . extend (foldTree treeScoreFolder) $ growntree
+            lift $ logger "Analysed context tree, using its Score module!"
+            let filename = makeValid . unpack . printpath $ mods
+            lift $ logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
+            lift $ writer (unpack . printpath $ mods) . unpack . (printdatum mods) $ gametree
