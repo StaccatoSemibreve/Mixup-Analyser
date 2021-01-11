@@ -23,6 +23,7 @@ import qualified Data.Map as Map
 import Control.Monad.Memo (MemoT, memo)
 import qualified Control.Monad.Memo as Memo
 import Control.Monad.Reader
+import Control.Monad.State.Lazy
 
 -- a Recontext with Maybe specified weights, because we need those!
 data Outcome =
@@ -41,7 +42,7 @@ data MixupFiltered =
 
 -- take a Mixup, filter it or just give a context if it would be empty
 mixupFilter :: Context -> Maybe Mixup -> Either (Text, Context) MixupFiltered
-mixupFilter context (Just mix) = case and[compareAll (reqs mix) context, compareNone (antireqs mix) context] of
+mixupFilter context (Just mix) = case and[evalState (compareAll (reqs mix)) context, evalState (compareNone (antireqs mix)) context] of
                                                                            True -> case outcomesFilter context (outcomes mix) (optionsFilter context . attOptions $ mix) (optionsFilter context . defOptions $ mix) of
                                                                                         [] -> Left (mname mix, context)
                                                                                         x -> Right . MixupFiltered (mname mix) . map (recontextToOutcome (attOptions mix) (defOptions mix)) $ x
@@ -51,7 +52,7 @@ mixupFilter context (Just mix) = case and[compareAll (reqs mix) context, compare
         outcomesFilter context outcomes atts defs = filter (\(Recontext att def _ _ _) -> (Map.member att atts) && (Map.member def defs)) outcomes
         
         optionsFilter :: Context -> Map Text Option -> Map Text Option
-        optionsFilter c = Map.filter (\o -> and [compareAll (require o) c, compareNone (antirequire o) c])
+        optionsFilter c = Map.filter (\o -> and [evalState (compareAll (require o)) c, evalState (compareNone (antirequire o)) c])
         
         recontextToOutcome :: Map Text Option -> Map Text Option -> Recontext -> Outcome
         recontextToOutcome atts defs rec = Outcome context rec (optionWeight . optionFromRecontextCol atts $ rec) (optionWeight . optionFromRecontextRow defs $ rec)
@@ -79,8 +80,8 @@ outcomesToContextTree = do
         recontextMix :: Outcome -> ModuleReader (Context, Maybe Mixup, Maybe MixupMetadata)
         recontextMix o = do
             mods <- ask
-            let newcontext = (updatum mods) . addset (set . result $ o) (add . result $ o) . startContext $ o
-            let nextmix = if (enddatum mods) newcontext
+            let newcontext = execState (updatum mods) . execState (addset (set . result $ o) (add . result $ o)) . startContext $ o
+            let nextmix = if evalState (enddatum mods) newcontext
                             then Nothing
                             else fmap (\next -> fromMaybe (errMix next) . Map.lookup next . mixdatum $ mods) . next . result $ o
             return (newcontext, nextmix, next . result $ o)
@@ -91,7 +92,7 @@ type TreeMemoT = MemoT [(Opt, Opt, Double, Double)] ResultSimple
 treeScoreFolder :: TreeContextItem -> [TreeMemoT ModuleReader TreeGameItem] -> TreeMemoT ModuleReader TreeGameItem
 treeScoreFolder (meta,a,b,c) [] = do
     mods <- lift ask
-    let g = [(a,b,scoreattdatum mods $ c, negate . scoredefdatum mods $ c)]
+    let g = [(a,b,evalState (scoreattdatum mods) c, negate . evalState (scoredefdatum mods) $ c)]
     res <- memo (pure . solveComplexCore) g
     return (c,a,b, Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . Just . resultComplex g $ res)
 treeScoreFolder (meta,a,b,c) subgamesM = do

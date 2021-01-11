@@ -6,7 +6,7 @@ module Contexts
     , hasValue, removeValue, getValue, getValueDefault, getValueMaybe
     , compareValue, compareValueDefault, compareValueMaybe, compareAll, compareNone
     , newContext
-    , Context
+    , Context, ContextS
     ) where
 
 import Data.List
@@ -15,53 +15,69 @@ import Data.Maybe
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Control.Monad.State.Lazy
 
 type Context = Map Text Integer
+type ContextS = State Context
 
-setValue :: (Text, Integer) -> Context -> Context
-setValue (k,v) c = Map.insert k v c
+setValue :: Text -> Integer -> ContextS ()
+setValue k v = modify $ Map.insert k v
 
-sets :: Context -> Context -> Context
-sets = Map.union
+sets :: Context -> ContextS ()
+sets c = modify $ Map.union c
 
-addValue :: (Text, Integer) -> Context -> Context
-addValue (k,v) c = Map.insertWith (+) k v c
+addValue :: Text -> Integer -> ContextS ()
+addValue k v = modify $ Map.insertWith (+) k v
 
-adds :: Context -> Context -> Context
-adds = Map.unionWith (+)
+adds :: Context -> ContextS ()
+adds c = do
+    context <- get
+    put $ Map.unionWith (+) c context
 
-addset :: Context -> Context -> Context -> Context
-addset s a c = adds a . sets s $ c
+addset :: Context -> Context -> ContextS ()
+addset s a = do
+    adds a
+    sets s
 
-hasValue :: Text -> Context -> Bool
-hasValue = Map.member
+removeValue :: Text -> ContextS ()
+removeValue k = modify $ Map.delete k
 
-removeValue :: Text -> Context -> Context
-removeValue = Map.delete
+hasValue :: Text -> ContextS Bool
+hasValue k = gets $ Map.member k
 
-getValueMaybe :: Text -> Context -> Maybe Integer
-getValueMaybe = Map.lookup
+getValueMaybe :: Text -> ContextS (Maybe Integer)
+getValueMaybe k = gets $ Map.lookup k
 
-getValueDefault :: Text -> Integer -> Context -> Integer
-getValueDefault k d = Map.findWithDefault d k
+getValueDefault :: Text -> Integer -> ContextS Integer
+getValueDefault k d = gets $ Map.findWithDefault d k
 
-getValue :: Text -> Context -> Integer
-getValue k = Map.findWithDefault 0 k
+getValue :: Text -> ContextS Integer
+getValue k = gets $ Map.findWithDefault 0 k
 
-compareValueMaybe :: (Text, Integer) -> Context -> Maybe Bool
-compareValueMaybe (k,v) = fmap (== v) . getValueMaybe k
+compareValueMaybe :: Text -> Integer -> ContextS (Maybe Bool)
+compareValueMaybe k v = do
+    v2 <- getValueMaybe k
+    return $ fmap (==v) v2
 
-compareValueDefault :: (Text, Integer) -> Integer -> Context -> Bool
-compareValueDefault (k,v) d = (== v) . getValueDefault k d
+compareValueDefault :: Text -> Integer -> Integer -> ContextS Bool
+compareValueDefault k v d = do
+    v2 <- getValueDefault k d
+    return $ v == v2
 
-compareValue :: (Text, Integer) -> Context -> Bool
-compareValue (k, v) = (== v) . getValue k
+compareValue :: Text -> Integer -> ContextS Bool
+compareValue k v = do
+    v2 <- getValue k
+    return $ v == v2
 
-compareAll :: Context -> Context -> Bool
-compareAll c1 c2 = and [ getValue k c1 == getValue k c2 | k <- Map.keys c1 ]
+compareAll :: Context -> ContextS Bool
+compareAll c1 = do
+    c2 <- get
+    return $ and [ Map.findWithDefault 0 k c1 == Map.findWithDefault 0 k c2 | k <- Map.keys c1 ]
 
-compareNone :: Context -> Context -> Bool
-compareNone c1 c2 = and [ getValue k c1 /= getValue k c2 | k <- Map.keys c1 ]
+compareNone :: Context -> ContextS Bool
+compareNone c1 = do
+    c2 <- get
+    return $ and [ Map.findWithDefault 0 k c1 /= Map.findWithDefault 0 k c2 | k <- Map.keys c1 ]
 
 newContext :: Context
 newContext = Map.empty

@@ -13,6 +13,7 @@
         set:
             AStartHealth: 6
             BStartHealth: 6
+            start: 1
         next:
             attacker: A
             defender: B
@@ -30,8 +31,9 @@
             path: SimpleBigDamage.txt
     context:
         set:
-            AHealth: 0
-            BHealth: 4
+            AStartHealth: 5
+            BStartHealth: 5
+            start: 1
         next:
             attacker: A
             defender: B
@@ -63,9 +65,10 @@
             path: SimpleMixDamage.txt
     context:
         set:
-            AHealth: 2
+            AStartHealth: 2
             BSuper: 1
-            BHealth: 2
+            BStartHealth: 2
+            start: 1
         next:
             attacker: A
             defender: B

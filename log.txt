@@ -30,13 +30,3 @@ Exporting to out/StrikeThrow.txt using its Printer module!
 Grown context tree for SimpleBig, using its respective EndState and Updater modules!
 Analysed context tree, using its Score module!
 Exporting to out/SimpleBigDamage.txt using its Printer module!
-Grown context tree for Simple, using its respective EndState and Updater modules!
-Analysed context tree, using its Score module!
-Exporting to out/SimpleMixWin.txt using its Printer module!
-Grown context tree for Simple, using its respective EndState and Updater modules!
-Analysed context tree, using its Score module!
-Exporting to out/SimpleMixDamageDiff.txt using its Printer module!
-Grown context tree for Simple, using its respective EndState and Updater modules!
-Analysed context tree, using its Score module!
-Exporting to out/SimpleMixDamage.txt using its Printer module!
-Done!

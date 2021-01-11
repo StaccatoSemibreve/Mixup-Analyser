@@ -32,9 +32,9 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
 
-type Score = Context -> Double
-type EndState = Context -> Bool
-type Updater = Context -> Context
+type Score = ContextS Double
+type EndState = ContextS Bool
+type Updater = ContextS ()
 type Printer = TreeGame -> Text
 
 parseScore :: FilePath -> String -> IO (Either InterpreterError Score)
@@ -46,6 +46,9 @@ parseScore dir name = runInterpreter $ do
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
+                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
                 interpret ("score") (as :: Score)
@@ -59,6 +62,9 @@ parseEndState dir name = runInterpreter $ do
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
+                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
                 interpret ("end") (as :: EndState)
@@ -72,6 +78,9 @@ parseUpdater dir name = runInterpreter $ do
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
                             , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
+                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
                 interpret ("update") (as :: Updater)
@@ -94,6 +103,7 @@ parsePrinter dir name = runInterpreter $ do
                             , ModuleImport "Data.Map" (QualifiedAs $ Just "M") NoImportList
                             , ModuleImport "Formatting" NotQualified NoImportList
                             , ModuleImport "Formatting.Formatters" NotQualified NoImportList
+                            , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
                 interpret ("printer") (as :: Printer)

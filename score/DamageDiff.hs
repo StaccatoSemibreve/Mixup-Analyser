@@ -8,14 +8,13 @@ import Contexts
 import Data.Function
 import Data.Text (Text)
 import Data.Map (Map)
+import Control.Monad.State.Lazy (State)
 
-score :: Context -> Double
-score context =
-    let
-        healthA = fromIntegral $ getValue "AHealth" context
-        healthB = fromIntegral $ getValue "BHealth" context
-        chipA = fromIntegral $ getValue "AChip" context
-        chipB = fromIntegral $ getValue "BChip" context
-    in
-        case (healthA > 0, healthB > 0) of
-             (_, _) -> (healthA - chipA/3) - (healthB - chipB/3)
+score :: ContextS Double
+score = do
+    healthA <- fmap fromIntegral $ getValue "AHealth"
+    healthB <- fmap fromIntegral $ getValue "BHealth"
+    chipA <- fmap fromIntegral $ getValue "AChip"
+    chipB <- fmap fromIntegral $ getValue "BChip"
+    
+    return $ (healthA - chipA/3) - (healthB - chipB/3)
