@@ -10,7 +10,7 @@ module Evaluate
 
 import Contexts
 import Parse
-import Game
+import GameSolve
 import Score
 
 import Data.List
@@ -91,7 +91,7 @@ type TreeMemoT = MemoT [(Opt, Opt, Double, Double)] ResultSimple
 treeScoreFolder :: TreeContextItem -> [TreeMemoT ModuleReader TreeGameItem] -> TreeMemoT ModuleReader TreeGameItem
 treeScoreFolder (meta,a,b,c) [] = do
     mods <- lift ask
-    let g = [(a,b,scoreattdatum mods $ c, scoredefdatum mods $ c)]
+    let g = [(a,b,scoreattdatum mods $ c, negate . scoredefdatum mods $ c)]
     res <- memo (pure . solveComplexCore) g
     return (c,a,b, Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . Just . resultComplex g $ res)
 treeScoreFolder (meta,a,b,c) subgamesM = do

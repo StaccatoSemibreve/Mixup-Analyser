@@ -32,10 +32,11 @@ dependencies:
 - filepath
 - directory
 - lucid
-- formatting == 6.3.7
+- formatting > 7
 - monad-memo
 - criterion
 - mtl
+- safe
 
 library:
   source-dirs: src

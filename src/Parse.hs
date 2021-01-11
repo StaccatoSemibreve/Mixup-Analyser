@@ -21,7 +21,7 @@ module Parse
     ) where
 
 import Contexts
-import Game
+import GameData
 
 import Data.YAML
 import Data.Text (Text, unpack)
@@ -30,7 +30,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Tree
 
-type Opt = (Text, Maybe Double)
 type TreeContextItem = (Maybe MixupMetadata, Opt, Opt, Context)
 type TreeContext = Tree TreeContextItem
 type TreeGameItem = (Context, Opt, Opt, Game)

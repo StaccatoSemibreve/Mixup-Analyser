@@ -5,6 +5,8 @@ module Main where
 
 -- calculates nash equilibriums, does related backend stuff
 import Game
+import GameData
+import GameSolve
 -- parses yaml into specific types also stored here
 import Parse
 -- manipulates the yaml data into the relevant data trees, evaluates with a fold (well, a scan) using that

@@ -2,19 +2,9 @@
 
 -- the helper functions used by Custom so that it's not also full of things that should never be altered
 module Contexts
-    ( setValue
-    , sets
-    , addValue
-    , adds
-    , addset
-    , getValue
-    , getValueDefault
-    , getValueMaybe
-    , compareValue
-    , compareValueDefault
-    , compareValueMaybe
-    , compareAll
-    , compareNone
+    ( setValue, sets, addValue, adds, addset
+    , hasValue, removeValue, getValue, getValueDefault, getValueMaybe
+    , compareValue, compareValueDefault, compareValueMaybe, compareAll, compareNone
     , newContext
     , Context
     ) where
@@ -42,6 +32,12 @@ adds = Map.unionWith (+)
 
 addset :: Context -> Context -> Context -> Context
 addset s a c = adds a . sets s $ c
+
+hasValue :: Text -> Context -> Bool
+hasValue = Map.member
+
+removeValue :: Text -> Context -> Context
+removeValue = Map.delete
 
 getValueMaybe :: Text -> Context -> Maybe Integer
 getValueMaybe = Map.lookup

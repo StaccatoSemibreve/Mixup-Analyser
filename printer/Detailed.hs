@@ -4,7 +4,7 @@ module Detailed
     ( printer
     ) where
 
-import Game
+import GameSolve
 import Parse
 import Evaluate
 import Contexts
@@ -41,10 +41,10 @@ printer tree = pack . drawTree . fmap (unpack . prettyshownode) $ tree
         prettyshowkeyval (k, v) acc = sformat (stext % ", " % stext % ": " % int) acc k v
         
         prettyshowres :: Result -> Text
-        prettyshowres (Result evc evr sdc sdr [_] [_])      = sformat ("\n EV Row: " % fixed 3 % ", EV Col: " % fixed 3 % "\n SD: " % fixed 3 % ", SD Col: " % fixed 3) evc evr sdc sdr
-        prettyshowres (Result evc evr sdc sdr [_] defs)     = sformat ("\n EV Row: " % fixed 3 % ", EV Col: " % fixed 3 % "\n SD: " % fixed 3 % ", SD Col: " % fixed 3 % "\n Defender Options: " % stext) evc evr sdc sdr (prettyshowouts defs)
-        prettyshowres (Result evc evr sdc sdr atts [_])     = sformat ("\n EV Row: " % fixed 3 % ", EV Col: " % fixed 3 % "\n SD: " % fixed 3 % ", SD Col: " % fixed 3 % "\n Attacker Options: " % stext) evc evr sdc sdr (prettyshowouts atts)
-        prettyshowres (Result evc evr sdc sdr atts defs)    = sformat ("\n EV Row: " % fixed 3 % ", EV Col: " % fixed 3 % "\n SD: " % fixed 3 % ", SD Col: " % fixed 3 % "\n Attacker Options: " % stext % "\n Defender Options: " % stext) evc evr sdc sdr (prettyshowouts atts) (prettyshowouts defs)
+        prettyshowres (Result evc evr sdc sdr [_] [_])      = sformat ("\n EV Col: " % fixed 3 % ", EV Row: " % fixed 3 % "\n SD Col: " % fixed 3 % ", SD Row: " % fixed 3) evc evr sdc sdr
+        prettyshowres (Result evc evr sdc sdr [_] defs)     = sformat ("\n EV Col: " % fixed 3 % ", EV Row: " % fixed 3 % "\n SD Col: " % fixed 3 % ", SD Row: " % fixed 3 % "\n Defender Options: " % stext) evc evr sdc sdr (prettyshowouts defs)
+        prettyshowres (Result evc evr sdc sdr atts [_])     = sformat ("\n EV Col: " % fixed 3 % ", EV Row: " % fixed 3 % "\n SD Col: " % fixed 3 % ", SD Row: " % fixed 3 % "\n Attacker Options: " % stext) evc evr sdc sdr (prettyshowouts atts)
+        prettyshowres (Result evc evr sdc sdr atts defs)    = sformat ("\n EV Col: " % fixed 3 % ", EV Row: " % fixed 3 % "\n SD Col: " % fixed 3 % ", SD Row: " % fixed 3 % "\n Attacker Options: " % stext % "\n Defender Options: " % stext) evc evr sdc sdr (prettyshowouts atts) (prettyshowouts defs)
         
         prettyshowouts :: [(Text, Double)] -> Text
         prettyshowouts outs = (\l -> foldl (\a b -> sformat (stext % " - " % stext) a b) (head l) (tail l)) . map prettyshowpair $ outs

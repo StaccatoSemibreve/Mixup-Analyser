@@ -10,4 +10,4 @@ import Data.Text (Text)
 import Data.Map (Map)
 
 score :: Context -> Double
-score context = fromIntegral . negate $ getValue "BHealth" context
+score context = fromIntegral (getValue "BStartHealth" context - getValue "BHealth" context)

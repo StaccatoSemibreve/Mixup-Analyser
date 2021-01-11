@@ -82,7 +82,7 @@ parsePrinter dir name = runInterpreter $ do
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
-                            , ModuleImport "Game" NotQualified NoImportList
+                            , ModuleImport "GameSolve" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Parse" NotQualified NoImportList
                             , ModuleImport "Evaluate" NotQualified NoImportList
