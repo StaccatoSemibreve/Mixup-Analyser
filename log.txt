@@ -1,0 +1,42 @@
+Found instructions in config.yaml:
+- StrikeThrow
+- SimpleBig
+- Simple
+Read instructions!
+Required Score modules:
+- Win
+- DamageDiff
+- Damage
+Required EndState modules:
+- HealthZero
+Required Updater modules:
+- Chipper
+Required Printer modules:
+- Detailed
+- DetailedPartial
+Required input data:
+- StrikeThrow
+- Simple
+Parsed all required Score modules!
+Parsed all required EndState modules!
+Parsed all required Updater modules!
+Parsed all required Printer modules!
+Parsed all required input data!
+Created lookup tables!
+Planted context trees!
+Grown context tree for StrikeThrow, using its respective EndState and Updater modules!
+Analysed context tree, using its Score module!
+Exporting to out/StrikeThrow.txt using its Printer module!
+Grown context tree for SimpleBig, using its respective EndState and Updater modules!
+Analysed context tree, using its Score module!
+Exporting to out/SimpleBigDamage.txt using its Printer module!
+Grown context tree for Simple, using its respective EndState and Updater modules!
+Analysed context tree, using its Score module!
+Exporting to out/SimpleMixWin.txt using its Printer module!
+Grown context tree for Simple, using its respective EndState and Updater modules!
+Analysed context tree, using its Score module!
+Exporting to out/SimpleMixDamageDiff.txt using its Printer module!
+Grown context tree for Simple, using its respective EndState and Updater modules!
+Analysed context tree, using its Score module!
+Exporting to out/SimpleMixDamage.txt using its Printer module!
+Done!
