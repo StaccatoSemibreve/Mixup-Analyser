@@ -5,7 +5,7 @@ module DetailedPartial
     ) where
 
 import GameSolve
-import Parse
+import ParseData
 import Evaluate
 import Contexts
 
@@ -19,7 +19,7 @@ import Formatting
 import Formatting.Formatters
 
 printer :: TreeGame -> Text
-printer tree = pack . drawTree . fmap (unpack . prettyshownode) . removeZeroes $ tree
+printer tree = prettyshowtree . fmap prettyshownode . removeZeroes $ tree
     where
         prettyshownode :: (Context, (Text, a), (Text, a), Game) -> Text
         prettyshownode (c, ("None1", _), ("None2", _), g) = prettyshowgame g c
@@ -50,12 +50,26 @@ printer tree = pack . drawTree . fmap (unpack . prettyshownode) . removeZeroes $
         prettyshowouts outs = (\l -> foldl (\a b -> sformat (stext % " - " % stext) a b) (head l) (tail l)) . map prettyshowpair $ outs
         prettyshowpair :: (Text, Double) -> Text
         prettyshowpair (opt, val) = sformat (stext % ": " % fixed 0 % "%") opt (val*100)
-
-removeZeroes :: TreeGame -> TreeGame
-removeZeroes = unfoldTree unfolder
-    where
-        unfolder :: TreeGame -> ((Context, (Text, Maybe Double), (Text, Maybe Double), Game), [TreeGame])
-        unfolder x = (rootLabel x, filter (nonzero (rootLabel x) . rootLabel) . subForest $ x)
         
-        nonzero :: (a, (Text, b), (Text, b), Game) -> (a, (Text, b), (Text, b), Game) -> Bool
-        nonzero (_,_,_,Game _ _ _ _ (Just (Result _ _ _ _ atts defs))) (_, (att,_),(def,_),_) = and [(> 0) . fromMaybe 0 . lookup att $ atts, (> 0) . fromMaybe 0 . lookup def $ defs]
+        prettyshowtree :: Tree Text -> Text
+        prettyshowtree = T.unlines . drawtree
+            where
+                drawtree :: Tree Text -> [Text]
+                drawtree (Node x ts0) = T.lines x ++ drawSubTrees ts0
+                drawSubTrees :: [Tree Text] -> [Text]
+                drawSubTrees [] = []
+                drawSubTrees [t] =
+                    "|" : shift "`- " "   " (drawtree t)
+                drawSubTrees (t:ts) =
+                    "|" : shift "+- " "|  " (drawtree t) ++ drawSubTrees ts
+                shift :: Text -> Text -> [Text] -> [Text]
+                shift first other ls = zipWith T.append (first : repeat other) ls
+
+        removeZeroes :: TreeGame -> TreeGame
+        removeZeroes = unfoldTree unfolder
+            where
+                unfolder :: TreeGame -> ((Context, (Text, Maybe Double), (Text, Maybe Double), Game), [TreeGame])
+                unfolder x = (rootLabel x, filter (nonzero (rootLabel x) . rootLabel) . subForest $ x)
+                
+                nonzero :: (a, (Text, b), (Text, b), Game) -> (a, (Text, b), (Text, b), Game) -> Bool
+                nonzero (_,_,_,Game _ _ _ _ (Just (Result _ _ _ _ atts defs))) (_, (att,_),(def,_),_) = and [(> 0) . fromMaybe 0 . lookup att $ atts, (> 0) . fromMaybe 0 . lookup def $ defs]

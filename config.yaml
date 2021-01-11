@@ -11,8 +11,8 @@
             path: StrikeThrow.txt
     context:
         set:
-            AStartHealth: 6
-            BStartHealth: 6
+            AStartHealth: 500
+            BStartHealth: 500
             start: 1
         next:
             attacker: A
@@ -31,8 +31,8 @@
             path: SimpleBigDamage.txt
     context:
         set:
-            AStartHealth: 5
-            BStartHealth: 5
+            AStartHealth: 3
+            BStartHealth: 3
             start: 1
         next:
             attacker: A

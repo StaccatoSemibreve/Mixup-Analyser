@@ -14,6 +14,7 @@ module Score
     ) where
 
 import Contexts
+import ParseData
 import Parse
 import Args
 
@@ -93,7 +94,7 @@ parsePrinter dir name = runInterpreter $ do
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "GameSolve" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
-                            , ModuleImport "Parse" NotQualified NoImportList
+                            , ModuleImport "ParseData" NotQualified NoImportList
                             , ModuleImport "Evaluate" NotQualified NoImportList
                             , ModuleImport "Data.Tree" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified (ImportList ["Text", "pack", "unpack", "append"])
@@ -136,7 +137,7 @@ environment = do
     args <- ask
     instructions <- liftIO . readInstructions . flagConfig $ args
     if null instructions then error ("No instructions found in " ++ (flagConfig args) ++ "!") else logger ("Found instructions in " ++ (flagConfig args) ++ ":")
-    mapM_ logger . map (\instr -> "- " ++ (unpack . Parse.name $ instr)) $ instructions
+    mapM_ logger . map (\instr -> "- " ++ (unpack . ParseData.name $ instr)) $ instructions
     
     let instrScoreData = nub . map scores $ instructions
     let instrScores = nub . concat $ (map (map $ unpack . scoreNameAtt) instrScoreData ++ map (map $ unpack . scoreNameDef) instrScoreData)

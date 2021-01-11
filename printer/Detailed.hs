@@ -5,7 +5,7 @@ module Detailed
     ) where
 
 import GameSolve
-import Parse
+import ParseData
 import Evaluate
 import Contexts
 
@@ -19,7 +19,7 @@ import Formatting
 import Formatting.Formatters
 
 printer :: TreeGame -> Text
-printer tree = pack . drawTree . fmap (unpack . prettyshownode) $ tree
+printer tree = prettyshowtree . fmap prettyshownode $ tree
     where
         prettyshownode :: (Context, (Text, a), (Text, a), Game) -> Text
         prettyshownode (c, ("None1", _), ("None2", _), g)   = prettyshowgame g c
@@ -50,3 +50,17 @@ printer tree = pack . drawTree . fmap (unpack . prettyshownode) $ tree
         prettyshowouts outs = (\l -> foldl (\a b -> sformat (stext % " - " % stext) a b) (head l) (tail l)) . map prettyshowpair $ outs
         prettyshowpair :: (Text, Double) -> Text
         prettyshowpair (opt, val) = sformat (stext % ": " % fixed 0 % "%") opt (val*100)
+        
+        prettyshowtree :: Tree Text -> Text
+        prettyshowtree = T.unlines . drawtree
+            where
+                drawtree :: Tree Text -> [Text]
+                drawtree (Node x ts0) = T.lines x ++ drawSubTrees ts0
+                drawSubTrees :: [Tree Text] -> [Text]
+                drawSubTrees [] = []
+                drawSubTrees [t] =
+                    "|" : shift "`- " "   " (drawtree t)
+                drawSubTrees (t:ts) =
+                    "|" : shift "+- " "|  " (drawtree t) ++ drawSubTrees ts
+                shift :: Text -> Text -> [Text] -> [Text]
+                shift first other ls = zipWith T.append (first : repeat other) ls

@@ -8,6 +8,7 @@ import Game
 import GameData
 import GameSolve
 -- parses yaml into specific types also stored here
+import ParseData
 import Parse
 -- manipulates the yaml data into the relevant data trees, evaluates with a fold (well, a scan) using that
 import Evaluate

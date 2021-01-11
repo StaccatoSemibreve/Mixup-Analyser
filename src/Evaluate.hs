@@ -9,7 +9,7 @@ module Evaluate
     ) where
 
 import Contexts
-import Parse
+import ParseData
 import GameSolve
 import Score
 

@@ -5,7 +5,7 @@ module Summary
     ) where
 
 import GameSolve
-import Parse
+import ParseData
 import Evaluate
 import Contexts
 
