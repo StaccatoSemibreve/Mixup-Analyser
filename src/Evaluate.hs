@@ -10,6 +10,7 @@ module Evaluate
 
 import Contexts
 import ParseData
+import Game
 import GameSolve
 import Score
 
@@ -80,8 +81,9 @@ outcomesToContextTree = do
         recontextMix :: Outcome -> ModuleReader (Context, Maybe Mixup, Maybe MixupMetadata)
         recontextMix o = do
             mods <- ask
-            let newcontext = execState (updatum mods) . execState (addset (set . result $ o) (add . result $ o)) . startContext $ o
-            let nextmix = if evalState (enddatum mods) newcontext
+            newcontext <- updateContext . execState (addset (set . result $ o) (add . result $ o)) . startContext $ o
+            ended <- endCheck newcontext
+            let nextmix = if ended
                             then Nothing
                             else fmap (\next -> fromMaybe (errMix next) . Map.lookup next . mixdatum $ mods) . next . result $ o
             return (newcontext, nextmix, next . result $ o)
@@ -92,13 +94,32 @@ type TreeMemoT = MemoT [(Opt, Opt, Double, Double)] ResultSimple
 treeScoreFolder :: TreeContextItem -> [TreeMemoT ModuleReader TreeGameItem] -> TreeMemoT ModuleReader TreeGameItem
 treeScoreFolder (meta,a,b,c) [] = do
     mods <- lift ask
-    let g = [(a,b,evalState (scoreattdatum mods) c, negate . evalState (scoredefdatum mods) $ c)]
+    scoresa <- lift $ scoresatt c
+    scoresd <- lift $ scoresdef c
+    let scorea = head scoresa
+    let scored = head scoresd
+    let g = [(a,b,scorea,scored)]
     res <- memo (pure . solveComplexCore) g
-    return (c,a,b, Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . Just . resultComplex g $ res)
+    return $ TreeGameItem c a b (Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . Just . resultComplex g $ res) scoresa scoresd [] []
 treeScoreFolder (meta,a,b,c) subgamesM = do
-    evs <- map (\(_, o1, o2, g) -> (o1, o2, evc . fromMaybe (error "???") . outcomesC $ g, evr . fromMaybe (error "???") . outcomesC $ g)) <$> sequence subgamesM
+    outsC <- map (\tgi -> map (\x -> (tgiAtt tgi, tgiDef tgi, x)) $ tgiAttEVs tgi) <$> sequence subgamesM
+    outsR <- map (\tgi -> map (\x -> (tgiAtt tgi, tgiDef tgi, x)) $ tgiDefEVs tgi) <$> sequence subgamesM
+    
+    evs <- map (\tgi -> (tgiAtt tgi, tgiDef tgi, evc . fromMaybe (error "???") . outcomesC . tgiGame $ tgi, evr . fromMaybe (error "???") . outcomesC . tgiGame $ tgi)) <$> sequence subgamesM
     res <- memo (pure . solveComplexCore) evs
-    return (c,a,b, Game (fromMaybe "" . fmap metaName $ meta) (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) evs . Just . resultComplex evs $ res)
+    
+    let gamesC = map (gameSimplePartial . gameSimplePartialOpts) . transpose $ outsC
+        gamesR = map (gameSimplePartial . gameSimplePartialOpts) . transpose $ outsR
+        
+        wc = weightsColsSimple res
+        wr = weightsRowsSimple res
+        
+        evsC = map (\g -> calcEVSimpleCore g wc wr) gamesC
+        evsR = map (\g -> calcEVSimpleCore g wc wr) gamesR
+        sdsC = map (\g -> calcSDSimpleCore g wc wr) gamesC
+        sdsR = map (\g -> calcSDSimpleCore g wc wr) gamesR
+    
+    return $ TreeGameItem c a b (Game (fromMaybe "" . fmap metaName $ meta) (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) evs . Just . resultComplex evs $ res) evsC evsR sdsC sdsR
 
 scanTree f ~(Node r l) = Node r $ map (scan' r) l where
     scan' a ~(Node n b) = let a' = f a n in Node a' $ map (scan' r) b 

@@ -2,14 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Game
-    ( gameSimplePartial
-    , gameSimple
-    , calcPureEVs
-    , calcEVSimpleCore
-    , calcVarSimpleCore
-    , calcSDSimpleCore
-    , gameComplex
-    , resultComplex
+    ( gameSimplePartial, gameSimplePartialOpts, gameSimple
+    , calcPureEVs, calcEVSimpleCore, calcVarSimpleCore, calcSDSimpleCore
+    , gameComplex, resultComplex
     ) where
 
 import GameData
@@ -25,6 +20,19 @@ import Numeric.LinearAlgebra.Data
 gameSimplePartial :: [[Double]] -> Matrix Double
 gameSimplePartial = fromLists
 
+gameSimplePartialOpts :: [(Opt, Opt, Double)] -> [[Double]]
+gameSimplePartialOpts opts =
+    let
+        fst3 (x,_,_) = x
+        snd3 (_,x,_) = x
+        thd3 (_,_,x) = x
+        
+        cols = nub . map (fst . fst3) $ opts
+        rows = nub . map (fst . snd3) $ opts
+        grid = map (map thd3) . transpose . chunksOf (length rows) $ opts
+    in
+        grid
+
 gameSimple :: Text -> [Text] -> [Text] -> [[Double]] -> [[Double]] -> GameSimple
 gameSimple n c r m1 m2 = GameSimple n c r (fromLists m1) (fromLists m2) Nothing
 
@@ -32,7 +40,7 @@ calcPureEVs :: Matrix Double -> [Double] -> [Double]
 calcPureEVs m cols = concat . toLists $ m Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols))
 
 calcEVSimpleCore :: Matrix Double -> [Double] -> [Double] -> Double
-calcEVSimpleCore m cols rows = (head . head . toLists $ (row (fmap (/ sum rows) rows)) Numeric.LinearAlgebra.<> m Numeric.LinearAlgebra.<> (col (fmap (/ sum cols) cols)))
+calcEVSimpleCore m cols rows = (head . head . toLists $ (row rows) Numeric.LinearAlgebra.<> m Numeric.LinearAlgebra.<> (col cols))
 
 -- calcEVSimple :: GameSimple -> ResultSimple -> Double
 

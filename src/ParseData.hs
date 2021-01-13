@@ -2,7 +2,7 @@
 
 -- parses yaml into specific types also stored here
 module ParseData
-    ( ScoreData (ScoreData, scoreNameAtt, scoreNameDef, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
+    ( ScoreData (ScoreData, scoreNamesAtt, scoreNamesDef, endName, updateName, outType, outPath) -- a structure containing all the data about scoring contexts, where to put output data, etc
     , Instruction (Instruction, name, path, scores, context) -- a structure containing a name (for output purposes i guess), the filepath of the mixup data, the specific score functions (ooh forgot about this, oh no i need to carry that through somehow), and the initial game context (as a Recontext, to be applied to an empty Context)
     , Context -- a lookup table of current game state, v important to track this!
     , Recontext (Recontext, colOption, rowOption, set, add, next) -- an interaction between both players that alters the Context in ways defined in set and add, and describes any subsequent mixups - the options listed are names, used to lookup the options from actual lists of Options
@@ -13,9 +13,8 @@ module ParseData
     , Opt
     , TreeContextItem
     , TreeContext
-    , TreeGameItem
+    , TreeGameItem (TreeGameItem, tgiContext, tgiAtt, tgiDef, tgiGame, tgiAttEVs, tgiDefEVs, tgiAttSDs, tgiDefSDs)
     , TreeGame
-    , TreeScore
     ) where
 
 import Contexts
@@ -29,13 +28,21 @@ import Data.Tree
 
 type TreeContextItem = (Maybe MixupMetadata, Opt, Opt, Context)
 type TreeContext = Tree TreeContextItem
-type TreeGameItem = (Context, Opt, Opt, Game)
+data TreeGameItem =
+    TreeGameItem { tgiContext::Context
+                 , tgiAtt::Opt
+                 , tgiDef::Opt
+                 , tgiGame::Game
+                 , tgiAttEVs::[Double]
+                 , tgiDefEVs::[Double]
+                 , tgiAttSDs::[Double]
+                 , tgiDefSDs::[Double]
+    } deriving (Eq, Ord, Show)
 type TreeGame = Tree TreeGameItem
-type TreeScore = Tree (Opt, Opt, Double)
 
 data ScoreData =
-    ScoreData { scoreNameAtt::Text
-              , scoreNameDef::Text
+    ScoreData { scoreNamesAtt::[Text]
+              , scoreNamesDef::[Text]
               , endName::Text
               , updateName::Text
               , outType::Text

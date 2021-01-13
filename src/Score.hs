@@ -7,10 +7,10 @@ module Score
     , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata, instrdata)
     , ModuleReader
     , FlagReader
-    , environment
-    , getModule
-    , logger
-    , writer
+    , Flags
+    , environment, getModule
+    , logger, writer
+    , scoreatt, scoredef, scoresatt, scoresdef, updateContext, endCheck, printTree
     ) where
 
 import Contexts
@@ -32,11 +32,12 @@ import Formatting.Formatters
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
+import Control.Monad.State.Lazy (evalState, execState)
 
 type Score = ContextS Double
 type EndState = ContextS Bool
 type Updater = ContextS ()
-type Printer = TreeGame -> Text
+type Printer = TreeGame -> ModuleReader Text
 
 parseScore :: FilePath -> String -> IO (Either InterpreterError Score)
 parseScore dir name = runInterpreter $ do
@@ -45,10 +46,11 @@ parseScore dir name = runInterpreter $ do
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
-                            , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
-                            , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
-                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
-                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Score" NotQualified NoImportList
+                            , ModuleImport "Data.Text" NotQualified NoImportList
+                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
+                            , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
@@ -61,10 +63,10 @@ parseEndState dir name = runInterpreter $ do
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
-                            , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
-                            , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
-                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
-                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Data.Text" NotQualified NoImportList
+                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
+                            , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
@@ -77,14 +79,14 @@ parseUpdater dir name = runInterpreter $ do
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
-                            , ModuleImport "Data.Text" NotQualified (ImportList ["Text"])
-                            , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
-                            , ModuleImport "Control.Monad.State.Lazy" NotQualified (ImportList ["State", "StateT"])
-                            , ModuleImport "Data.Functor.Identity" NotQualified (ImportList ["Identity"])
+                            , ModuleImport "Data.Text" NotQualified NoImportList
+                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
+                            , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
                             ]
                 
-                interpret ("update") (as :: Updater)
+                interpret ("updater") (as :: Updater)
 
 parsePrinter :: FilePath -> String -> IO (Either InterpreterError Printer)
 parsePrinter dir name = runInterpreter $ do
@@ -97,14 +99,20 @@ parsePrinter dir name = runInterpreter $ do
                             , ModuleImport "ParseData" NotQualified NoImportList
                             , ModuleImport "Evaluate" NotQualified NoImportList
                             , ModuleImport "Data.Tree" NotQualified NoImportList
-                            , ModuleImport "Data.Text" NotQualified (ImportList ["Text", "pack", "unpack", "append"])
+                            , ModuleImport "Data.Text" NotQualified NoImportList
                             , ModuleImport "Data.Text" (QualifiedAs $ Just "T") NoImportList
                             , ModuleImport "Data.Text.Lazy" (QualifiedAs $ Just "TL") NoImportList
-                            , ModuleImport "Data.Map" NotQualified (ImportList ["Map"])
+                            , ModuleImport "Data.Text.Encoding" (QualifiedAs $ Just "TE") NoImportList
+                            , ModuleImport "Data.Text.Lazy.Encoding" (QualifiedAs $ Just "TLE") NoImportList
+                            , ModuleImport "Data.Map" NotQualified NoImportList
                             , ModuleImport "Data.Map" (QualifiedAs $ Just "M") NoImportList
                             , ModuleImport "Formatting" NotQualified NoImportList
                             , ModuleImport "Formatting.Formatters" NotQualified NoImportList
+                            , ModuleImport "Formatting.Combinators" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
+                            , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
+                            , ModuleImport "Control.Monad.Reader" NotQualified NoImportList
+                            , ModuleImport "Data.YAML" NotQualified NoImportList
                             ]
                 
                 interpret ("printer") (as :: Printer)
@@ -112,11 +120,11 @@ parsePrinter dir name = runInterpreter $ do
 data ModuleDatum =
     ModuleDatum { namedatum :: Text
                 , mixdatum :: MixupData
-                , scoreattdatum :: Score
-                , scoredefdatum :: Score
-                , enddatum :: EndState
-                , updatum :: Updater
-                , printdatum :: Printer
+                , scoreattdatum :: [(Text, Score)]
+                , scoredefdatum :: [(Text, Score)]
+                , enddatum :: (Text, EndState)
+                , updatum :: (Text, Updater)
+                , printdatum :: (Text, Printer)
                 , printpath :: Text
                 , outdatum :: Recontext
     }
@@ -140,7 +148,7 @@ environment = do
     mapM_ logger . map (\instr -> "- " ++ (unpack . ParseData.name $ instr)) $ instructions
     
     let instrScoreData = nub . map scores $ instructions
-    let instrScores = nub . concat $ (map (map $ unpack . scoreNameAtt) instrScoreData ++ map (map $ unpack . scoreNameDef) instrScoreData)
+    let instrScores = nub . concat . concat $ (map (map $ map unpack . scoreNamesAtt) instrScoreData ++ map (map $ map unpack . scoreNamesDef) instrScoreData)
     let instrEnds = nub . concat . map (map $ unpack . endName) $ instrScoreData
     let instrUpdaters = nub . concat . map (map $ unpack . updateName) $ instrScoreData
     let instrPrinters = nub . concat . map (map $ unpack . outType) $ instrScoreData
@@ -209,6 +217,39 @@ getModule :: (Monad b) => String -> (ModuleData -> Map Text a) -> ReaderT Module
 getModule err f = do
     env <- ask
     return (\t -> fromMaybe (error $ err ++ ": " ++ (unpack t)) . Map.lookup t . f $ env)
+
+scoreatt :: Context -> ModuleReader Double
+scoreatt c = do
+    f <- fmap (snd . head . scoreattdatum) ask
+    return $ evalState f c
+scoredef :: Context -> ModuleReader Double
+scoredef c = do
+    f <- fmap (snd . head . scoredefdatum) ask
+    return $ evalState f c
+
+scoresatt :: Context -> ModuleReader [Double]
+scoresatt c = do
+    fs <- fmap (map snd . scoreattdatum) ask
+    return $ map (\f -> evalState f c) fs
+scoresdef :: Context -> ModuleReader [Double]
+scoresdef c = do
+    fs <- fmap (map snd . scoredefdatum) ask
+    return $ map (\f -> evalState f c) fs
+
+endCheck :: Context -> ModuleReader (Bool)
+endCheck c = do
+    f <- fmap (snd .enddatum) ask
+    return $ evalState f c
+
+updateContext :: Context -> ModuleReader (Context)
+updateContext c = do
+    f <- fmap (snd . updatum) ask
+    return $ execState f c
+
+printTree :: TreeGame -> ModuleReader Text
+printTree tree = do
+    f <- fmap (snd . printdatum) ask
+    f tree
 
 resetLog :: FlagReader ()
 resetLog = do

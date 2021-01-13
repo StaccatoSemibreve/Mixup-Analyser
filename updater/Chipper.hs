@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Chipper
-    ( update
+    ( updater
     ) where
 
 import Prelude
@@ -20,8 +20,8 @@ healthB = "BHealth"
 chipB = "BChip"
 guardB = "BGuardbreakDamage"
 
-update :: ContextS ()
-update = do
+updater :: ContextS ()
+updater = do
     firstRun <- hasValue "start"
     when firstRun startCheck
     chipCheck healthA chipA guardB

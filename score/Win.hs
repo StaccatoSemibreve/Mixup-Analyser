@@ -10,7 +10,7 @@ import Data.Text (Text)
 import Data.Map (Map)
 import Control.Monad.State.Lazy (State)
 
-score :: State Context Double
+score :: ContextS Double
 score = do
     healthA <- getValue "AHealth"
     healthB <- getValue "BHealth"

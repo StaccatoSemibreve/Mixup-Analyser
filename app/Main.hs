@@ -57,13 +57,20 @@ program = do
             where
                 seed :: Instruction -> ScoreData -> Reader ModuleData ModuleDatum
                 seed instr sdata = do
-                    mdata   <- fmap ($ path instr)          $ getModule "Tried to get nonexistent input data" mixdata
-                    fSA     <- fmap ($ scoreNameAtt sdata)  $ getModule "Tried to get a nonexistent score" scoredata
-                    fSD     <- fmap ($ scoreNameDef sdata)  $ getModule "Tried to get a nonexistent score" scoredata
-                    fE      <- fmap ($ endName sdata)       $ getModule "Tried to get a nonexistent endstate" enddata
-                    fU      <- fmap ($ updateName sdata)    $ getModule "Tried to get a nonexistent updater" updata
-                    fP      <- fmap ($ outType sdata)       $ getModule "Tried to get a nonexistent printer" printdata
-                    return $ ModuleDatum (name instr) mdata fSA fSD fE fU fP (outPath sdata) (context instr)
+                    mdata   <- fmap ($ path instr)                      $ getModule "Tried to get nonexistent input data" mixdata
+                    fSA     <- fmap (\f -> map f $ scoreNamesAtt sdata) $ getModule "Tried to get nonexistent scores in" scoredata
+                    fSD     <- fmap (\f -> map f $ scoreNamesDef sdata) $ getModule "Tried to get nonexistent scores in" scoredata
+                    fE      <- fmap ($ endName sdata)                   $ getModule "Tried to get a nonexistent endstate" enddata
+                    fU      <- fmap ($ updateName sdata)                $ getModule "Tried to get a nonexistent updater" updata
+                    fP      <- fmap ($ outType sdata)                   $ getModule "Tried to get a nonexistent printer" printdata
+                    
+                    let fSAN = zip (scoreNamesAtt sdata) fSA
+                        fSDN = zip (scoreNamesDef sdata) fSD
+                        fEN  = (endName sdata, fE)
+                        fUN  = (updateName sdata, fU)
+                        fPN  = (outType sdata, fP)
+                    
+                    return $ ModuleDatum (name instr) mdata fSAN fSDN fEN fUN fPN (outPath sdata) (context instr)
         treeThingy :: ModuleReader ()
         treeThingy = do
             mods <- ask
@@ -74,4 +81,5 @@ program = do
             lift $ logger "Analysed context tree, using its Score module!"
             let filename = makeValid . unpack . printpath $ mods
             lift $ logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
-            lift $ writer (unpack . printpath $ mods) . unpack . (printdatum mods) $ gametree
+            printed <- printTree gametree
+            lift $ writer (unpack . printpath $ mods) . unpack $ printed
