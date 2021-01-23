@@ -43,11 +43,12 @@ main = do
 
 program :: FlagReader ()
 program = do
+    flags <- ask
     env <- environment
-    let seeds = runReader plantTrees env
-    logger "Planted context trees!"
-    mapM_ (runReaderT treeThingy) $ seeds
-    logger "Done!"
+    let seeds = zip (runReader plantTrees env) (repeat flags)
+    loggerF "Planted context trees!"
+    lift . mapM_ (runReaderT treeThingy) $ seeds
+    loggerF "Done!"
     where
         plantTrees :: Reader ModuleData [ModuleDatum]
         plantTrees = do
@@ -71,15 +72,15 @@ program = do
                         fPN  = (outType sdata, fP)
                     
                     return $ ModuleDatum (name instr) mdata fSAN fSDN fEN fUN fPN (outPath sdata) (context instr)
-        treeThingy :: ModuleReader ()
+        treeThingy :: ModuleReader IO ()
         treeThingy = do
-            mods <- ask
-            flags <- lift ask
+            mods <- askMods
+            flags <- askFlags
             growntree <- outcomesToContextTree
-            lift $ logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
+            logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
             gametree <- startEvalMemoT . sequence . extend (foldTree treeScoreFolder) $ growntree
-            lift $ logger "Analysed context tree, using its Score module!"
+            logger "Analysed context tree, using its Score module!"
             let filename = makeValid . unpack . printpath $ mods
-            lift $ logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
+            logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
             printed <- printTree gametree
-            lift $ writer (unpack . printpath $ mods) . unpack $ printed
+            writer (unpack . printpath $ mods) . unpack $ printed

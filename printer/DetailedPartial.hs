@@ -20,6 +20,7 @@ import Formatting
 import Formatting.Formatters
 import Control.Monad.State.Lazy (evalState)
 import Control.Monad.Reader (ReaderT)
+import Control.Monad.Identity
 
 printer :: Printer
 printer tree = do

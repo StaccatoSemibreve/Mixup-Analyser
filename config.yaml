@@ -31,8 +31,8 @@
             path: SimpleBigDamage.txt
     context:
         set:
-            AStartHealth: 2
-            BStartHealth: 2
+            AStartHealth: 3
+            BStartHealth: 3
             start: 1
         next:
             attacker: A

@@ -67,20 +67,20 @@ mixupFilter context Nothing = Left ("", context)
         
 
 -- take the mixup data, the mixup name, the current context, and the list of outcomes - return a Tree describing the resulting structure recursively (for as long as there are nexts and the context is not an endstate), also carry through the MixupMetadata metadata for readability
-outcomesToContextTree :: ModuleReader TreeContext
+outcomesToContextTree :: (Monad a) => ModuleReader a TreeContext
 outcomesToContextTree = do
-    mods <- ask
+    mods <- askMods
     unfoldTreeM unfolder (Outcome newContext (outdatum mods) Nothing Nothing)
     where
-        unfolder :: Outcome -> ModuleReader (TreeContextItem, [Outcome])
+        unfolder :: (Monad a) => Outcome -> ModuleReader a (TreeContextItem, [Outcome])
         unfolder o = do
-            mods <- ask
+            mods <- askMods
             (newcontext, mixmaybe, mnext) <- recontextMix o
             return ((mnext, (colOption . result $ o, colWeight o), (rowOption . result $ o, rowWeight o), newcontext), (either (const []) outcomesFiltered . mixupFilter newcontext $ mixmaybe))
         
-        recontextMix :: Outcome -> ModuleReader (Context, Maybe Mixup, Maybe MixupMetadata)
+        recontextMix :: (Monad a) => Outcome -> ModuleReader a (Context, Maybe Mixup, Maybe MixupMetadata)
         recontextMix o = do
-            mods <- ask
+            mods <- askMods
             newcontext <- updateContext . execState (addset (set . result $ o) (add . result $ o)) . startContext $ o
             ended <- endCheck newcontext
             let nextmix = if ended
@@ -91,9 +91,9 @@ outcomesToContextTree = do
         errMix meta = error $ "No mixups with required attacker (" ++ (unpack . metaAtt $ meta) ++ ") and defender (" ++ (unpack . metaDef $ meta) ++ ") called '" ++ (unpack . metaName $ meta) ++ "' found."
 
 type TreeMemoT = MemoT [(Opt, Opt, Double, Double)] ResultSimple
-treeScoreFolder :: TreeContextItem -> [TreeMemoT ModuleReader TreeGameItem] -> TreeMemoT ModuleReader TreeGameItem
+treeScoreFolder :: (Monad a) => TreeContextItem -> [TreeMemoT (ModuleReader a) TreeGameItem] -> TreeMemoT (ModuleReader a) TreeGameItem
 treeScoreFolder (meta,a,b,c) [] = do
-    mods <- lift ask
+    mods <- lift askMods
     scoresa <- lift $ scoresatt c
     scoresd <- lift $ scoresdef c
     let scorea = head scoresa

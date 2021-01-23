@@ -20,14 +20,15 @@ import Formatting
 import Formatting.Formatters
 import Formatting.Combinators
 import Control.Monad.State.Lazy (evalState)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.Reader (ReaderT)
+import Control.Monad.Identity
 
 printer :: Printer
 printer tree = do
     scorea <- scoresatt startcontext
     scored <- scoresdef startcontext
     
-    mods <- ask
+    mods <- askMods
     let scoreattmods = map fst . scoreattdatum $ mods
     let scoredefmods = map fst . scoredefdatum $ mods
     let updatermod   = fst . updatum $ mods

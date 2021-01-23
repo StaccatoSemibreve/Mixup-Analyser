@@ -22,7 +22,8 @@ import Formatting
 import Formatting.Formatters
 import Formatting.Combinators
 import Control.Monad.State.Lazy (evalState)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.Reader (ReaderT)
+import Control.Monad.Identity
 import Data.YAML
 
 instance ToYAML Result where
@@ -101,6 +102,6 @@ instance ToYAML ModuleDatum where
 
 printer :: Printer
 printer tree = do
-    mods <- ask
+    mods <- askMods
     let yaml = encode1 . M.fromList $ [("Metadata"::Text, toYAML mods), ("Output", toYAML tree)]
     return . TL.toStrict . TLE.decodeUtf8 $ yaml

@@ -21,6 +21,7 @@ import Formatting.Formatters
 import Formatting.Combinators
 import Control.Monad.State.Lazy (evalState)
 import Control.Monad.Reader (ReaderT)
+import Control.Monad.Identity
 
 printer :: Printer
 printer (Node tgi _) = do
