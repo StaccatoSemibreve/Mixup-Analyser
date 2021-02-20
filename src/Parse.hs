@@ -13,9 +13,15 @@ import ParseData
 import Data.YAML
 import Data.Text (Text, unpack)
 import qualified Data.ByteString.Lazy as B
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as HashMap
+import Data.Hashable
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Tree
+
+instance (Hashable a, Eq a, Ord a, FromYAML a, FromYAML b) => FromYAML (HashMap a b) where
+    parseYAML = fmap (HashMap.fromList . Map.toList) . parseYAML
 
 data MixupGroup =
     MixupGroup { attacker::Text

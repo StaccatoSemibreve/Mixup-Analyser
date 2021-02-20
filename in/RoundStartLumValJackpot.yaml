@@ -1,0 +1,154 @@
+-
+    attacker: A
+    defender: B
+    mixups:
+        -
+            name: RoundStart
+            attackerOptions:
+                -
+                    name: fjAA
+                -
+                    name: fB
+                -
+                    name: dfB
+                -
+                    name: Nothing
+                -
+                    name: jC
+            defenderOptions:
+                -
+                    name: bJ
+                -
+                    name: b
+                -
+                    name: dT
+                -
+                    name: gC
+                -
+                    name: bA
+            outcomes:
+                -
+                    attackerOption: fjAA
+                    defenderOption: bJ
+                    set:
+                        WinA: 25
+                -
+                    attackerOption: fjAA
+                    defenderOption: b
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: fjAA
+                    defenderOption: dT
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: fjAA
+                    defenderOption: gC
+                    set:
+                        WinA: 50
+                -
+                    attackerOption: fjAA
+                    defenderOption: bA
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: fB
+                    defenderOption: bJ
+                    set:
+                        WinA: 60
+                -
+                    attackerOption: fB
+                    defenderOption: b
+                    set:
+                        WinA: 40
+                -
+                    attackerOption: fB
+                    defenderOption: dT
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: fB
+                    defenderOption: gC
+                    set:
+                        WinA: 50
+                -
+                    attackerOption: fB
+                    defenderOption: bA
+                    set:
+                        WinA: 70
+                -
+                    attackerOption: dfB
+                    defenderOption: bJ
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: dfB
+                    defenderOption: b
+                    set:
+                        WinA: 40
+                -
+                    attackerOption: dfB
+                    defenderOption: dT
+                    set:
+                        WinA: 25
+                -
+                    attackerOption: dfB
+                    defenderOption: gC
+                    set:
+                        WinA: 65
+                -
+                    attackerOption: dfB
+                    defenderOption: bA
+                    set:
+                        WinA: 70
+                -
+                    attackerOption: Nothing
+                    defenderOption: bJ
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: Nothing
+                    defenderOption: b
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: Nothing
+                    defenderOption: dT
+                    set:
+                        WinA: 55
+                -
+                    attackerOption: Nothing
+                    defenderOption: gC
+                    set:
+                        WinA: 30
+                -
+                    attackerOption: Nothing
+                    defenderOption: bA
+                    set:
+                        WinA: 25
+                -
+                    attackerOption: jC
+                    defenderOption: bJ
+                    set:
+                        WinA: 35
+                -
+                    attackerOption: jC
+                    defenderOption: b
+                    set:
+                        WinA: 60
+                -
+                    attackerOption: jC
+                    defenderOption: dT
+                    set:
+                        WinA: 35
+                -
+                    attackerOption: jC
+                    defenderOption: gC
+                    set:
+                        WinA: 35
+                -
+                    attackerOption: jC
+                    defenderOption: bA
+                    set:
+                        WinA: 40

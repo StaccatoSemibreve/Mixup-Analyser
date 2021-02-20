@@ -14,8 +14,8 @@ import Data.Maybe
 import Data.Text (Text, pack, unpack, append)
 import qualified Data.Text as T
 import Data.Tree
-import Data.Map (Map)
-import qualified Data.Map as M
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as M
 import Formatting
 import Formatting.Formatters
 import Formatting.Combinators
@@ -64,9 +64,9 @@ printer (Node tgi _) = do
         prettyshowcontext :: Context -> Text
         prettyshowcontext c = foldr prettyshowkeyval (prettyshowkeyvalfirst . head . M.toList $ c) . tail . M.toList $ c
         
-        prettyshowkeyvalfirst :: (Text, Integer) -> Text
+        prettyshowkeyvalfirst :: (Text, Int) -> Text
         prettyshowkeyvalfirst (k, v) = sformat (" Context: " % stext % ": " % int) k v
-        prettyshowkeyval :: (Text, Integer) -> Text -> Text
+        prettyshowkeyval :: (Text, Int) -> Text -> Text
         prettyshowkeyval (k, v) acc = sformat (stext % ", " % stext % ": " % int) acc k v
         
         prettyshowres :: Result -> Text

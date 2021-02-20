@@ -7,8 +7,8 @@
             defender: [WinChanceDef, DamageDef, DamageDiffDef, HealthDef]
             endstate: HealthZero
             updater: Chipper
-            format: YAML
-            path: StrikeThrow.txt
+            format: Detailed
+            path: StrikeThrowDetailed.txt
     context:
         set:
             AStartHealth: 6
@@ -18,58 +18,3 @@
             attacker: A
             defender: B
             mixup: StrikeThrow
--
-    name: SimpleBig
-    path: Simple
-    score:
-        -
-            attacker: [Damage]
-            defender: [DamageDef]
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleBigDamage.txt
-    context:
-        set:
-            AStartHealth: 3
-            BStartHealth: 3
-            start: 1
-        next:
-            attacker: A
-            defender: B
-            mixup: Mix
--
-    name: Simple
-    path: Simple
-    score:
-        -
-            attacker: [Win]
-            defender: [WinDef]
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleMixWin.txt
-        -
-            attacker: [DamageDiff]
-            defender: [DamageDiffDef]
-            endstate: HealthZero
-            updater: Chipper
-            format: DetailedPartial
-            path: SimpleMixDamageDiff.txt
-        -
-            attacker: [Damage]
-            defender: [DamageDef]
-            endstate: HealthZero
-            updater: Chipper
-            format: Detailed
-            path: SimpleMixDamage.txt
-    context:
-        set:
-            AStartHealth: 2
-            BSuper: 1
-            BStartHealth: 2
-            start: 1
-        next:
-            attacker: A
-            defender: B
-            mixup: Mix

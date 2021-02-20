@@ -16,8 +16,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TLE
 import Data.Tree
-import Data.Map (Map)
-import qualified Data.Map as M
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as M
 import Formatting
 import Formatting.Formatters
 import Formatting.Combinators

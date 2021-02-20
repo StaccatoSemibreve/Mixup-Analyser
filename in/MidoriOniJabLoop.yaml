@@ -1,0 +1,216 @@
+-
+    attacker: Midori
+    defender: Onimaru
+    mixups:
+        -
+            name: JabLoop
+            attackerOptions:
+                -
+                    name: nA
+                -
+                    name: fjA
+                -
+                    name: gC
+                -
+                    name: T
+                -
+                    name: b
+            defenderOptions:
+                -
+                    name: b
+                -
+                    name: nA
+                -
+                    name: bA
+                -
+                    name: gC
+                -
+                    name: gS
+                    require:
+                        OnimaruSuper: 1
+            outcomes:
+                -
+                    attackerOption: nA
+                    defenderOption: b
+                    add:
+                        OnimaruChip: 1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: nA
+                    defenderOption: nA
+                    add:
+                        MidoriHealth: -1
+                        OnimaruHealth: -1
+                    set:
+                        MidoriChip: 0
+                        OnimaruChip: 0
+                -
+                    attackerOption: nA
+                    defenderOption: bA
+                    add:
+                        MidoriHealth: -1
+                    set:
+                        MidoriChip: 0
+                        OniOki: 1
+                -
+                    attackerOption: nA
+                    defenderOption: gC
+                    add:
+                        MidoriHealth: -1
+                        OnimaruHealth: -1
+                    set:
+                        MidoriChip: 0
+                        OnimaruChip: 0
+                        OniOki: 1
+                -
+                    attackerOption: nA
+                    defenderOption: gS
+                    add:
+                        MidoriHealth: -2
+                    set:
+                        MidoriChip: 0
+                
+                -
+                    attackerOption: fjA
+                    defenderOption: b
+                    add:
+                        OnimaruChip: 1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: fjA
+                    defenderOption: nA
+                    add:
+                        OnimaruChip: 1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: fjA
+                    defenderOption: bA
+                    add:
+                        OnimaruHealth: -3
+                    set:
+                        OnimaruChip: 0
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: fjA
+                    defenderOption: gC
+                    add:
+                        OnimaruHealth: -2
+                    set:
+                        OnimaruChip: 0
+                -
+                    attackerOption: fjA
+                    defenderOption: gS
+                    add:
+                        MidoriHealth: -2
+                    set:
+                        MidoriChip: 0
+                
+                -
+                    attackerOption: gC
+                    defenderOption: b
+                -
+                    attackerOption: gC
+                    defenderOption: nA
+                -
+                    attackerOption: gC
+                    defenderOption: bA
+                    add:
+                        OnimaruHealth: -1
+                    set:
+                        OnimaruChip: 0
+                        MidoriEmpowered: 1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: gC
+                    defenderOption: gC
+                    add:
+                        MidoriHealth: -2
+                    set:
+                        MidoriChip: 0
+                        OniOki: 1
+                -
+                    attackerOption: gC
+                    defenderOption: gS
+                    add:
+                        OnimaruHealth: -1
+                    set:
+                        OnimaruChip: 0
+                        MidoriEmpowered: 1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                
+                -
+                    attackerOption: T
+                    defenderOption: b
+                -
+                    attackerOption: T
+                    defenderOption: bA
+                    add:
+                        MidoriHealth: -1
+                    set:
+                        MidoriChip: 0
+                -
+                    attackerOption: T
+                    defenderOption: nA
+                -
+                    attackerOption: T
+                    defenderOption: gC
+                    add:
+                        MidoriHealth: -2
+                    set:
+                        MidoriChip: 0
+                        OniOki: 1
+                -
+                    attackerOption: T
+                    defenderOption: gS
+                    add:
+                        OnimaruHealth: -1
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: b
+                    defenderOption: b
+                -
+                    attackerOption: b
+                    defenderOption: nA
+                -
+                    attackerOption: b
+                    defenderOption: bA
+                    add:
+                        MidoriChip: 2
+                -
+                    attackerOption: b
+                    defenderOption: gC
+                    add:
+                        MidoriChip: 1
+                        OnimaruHealth: -2
+                    set:
+                        OnimaruChip: 0
+                    next:
+                        attacker: Midori
+                        defender: Onimaru
+                        mixup: JabLoop
+                -
+                    attackerOption: b
+                    defenderOption: gS
+                    add:
+                        MidoriChip: 1

@@ -13,20 +13,20 @@ import Data.List
 import Data.Function
 import Data.Maybe
 import Data.Text (Text)
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as Map
 import Control.Monad.State.Lazy
 
-type Context = Map Text Integer
+type Context = HashMap Text Int
 type ContextS = State Context
 
-setValue :: Text -> Integer -> ContextS ()
+setValue :: Text -> Int -> ContextS ()
 setValue k v = modify $ Map.insert k v
 
 sets :: Context -> ContextS ()
 sets c = modify $ Map.union c
 
-addValue :: Text -> Integer -> ContextS ()
+addValue :: Text -> Int -> ContextS ()
 addValue k v = modify $ Map.insertWith (+) k v
 
 adds :: Context -> ContextS ()
@@ -45,26 +45,26 @@ removeValue k = modify $ Map.delete k
 hasValue :: Text -> ContextS Bool
 hasValue k = gets $ Map.member k
 
-getValueMaybe :: Text -> ContextS (Maybe Integer)
+getValueMaybe :: Text -> ContextS (Maybe Int)
 getValueMaybe k = gets $ Map.lookup k
 
-getValueDefault :: Text -> Integer -> ContextS Integer
+getValueDefault :: Text -> Int -> ContextS Int
 getValueDefault k d = gets $ Map.findWithDefault d k
 
-getValue :: Text -> ContextS Integer
+getValue :: Text -> ContextS Int
 getValue k = gets $ Map.findWithDefault 0 k
 
-compareValueMaybe :: Text -> Integer -> ContextS (Maybe Bool)
+compareValueMaybe :: Text -> Int -> ContextS (Maybe Bool)
 compareValueMaybe k v = do
     v2 <- getValueMaybe k
     return $ fmap (==v) v2
 
-compareValueDefault :: Text -> Integer -> Integer -> ContextS Bool
+compareValueDefault :: Text -> Int -> Int -> ContextS Bool
 compareValueDefault k v d = do
     v2 <- getValueDefault k d
     return $ v == v2
 
-compareValue :: Text -> Integer -> ContextS Bool
+compareValue :: Text -> Int -> ContextS Bool
 compareValue k v = do
     v2 <- getValue k
     return $ v == v2

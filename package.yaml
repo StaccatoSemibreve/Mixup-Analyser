@@ -25,6 +25,8 @@ dependencies:
 - split
 - comonad
 - containers
+- unordered-containers > 0.2.11
+- hashable
 - hmatrix
 - HsYAML
 - bytestring

@@ -43,3 +43,56 @@
                         BSuper: 1
                     add:
                         AHealth: -1
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: StrikeThrow
+-
+    attacker: B
+    defender: A
+    mixups:
+        -
+            name: StrikeThrow
+            attackerOptions:
+                -
+                    name: Strike
+                -
+                    name: Throw
+            defenderOptions:
+                -
+                    name: Block
+                -
+                    name: Yomi
+            outcomes:
+                -
+                    attackerOption: Strike
+                    defenderOption: Block
+                    add:
+                        AChip: 1
+                -
+                    attackerOption: Strike
+                    defenderOption: Yomi
+                    set:
+                        AChip: 0
+                    add:
+                        AHealth: -2
+                -
+                    attackerOption: Throw
+                    defenderOption: Block
+                    add:
+                        AHealth: -1
+                    next:
+                        attacker: B
+                        defender: A
+                        mixup: StrikeThrow
+                -
+                    attackerOption: Throw
+                    defenderOption: Yomi
+                    set:
+                        ASuper: 1
+                    add:
+                        BHealth: -1
+                    next:
+                        attacker: A
+                        defender: B
+                        mixup: StrikeThrow

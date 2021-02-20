@@ -51,7 +51,7 @@ parseScore dir name = runInterpreter $ do
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Score" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified NoImportList
-                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Data.HashMap.Lazy" NotQualified NoImportList
                             , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
                             , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
@@ -67,7 +67,7 @@ parseEndState dir name = runInterpreter $ do
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified NoImportList
-                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Data.HashMap.Lazy" NotQualified NoImportList
                             , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
                             , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
@@ -83,7 +83,7 @@ parseUpdater dir name = runInterpreter $ do
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
                             , ModuleImport "Data.Text" NotQualified NoImportList
-                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Data.HashMap.Lazy" NotQualified NoImportList
                             , ModuleImport "Control.Monad.State.Lazy" NotQualified NoImportList
                             , ModuleImport "Data.Functor.Identity" NotQualified NoImportList
                             , ModuleImport "Control.Monad" NotQualified NoImportList
@@ -107,7 +107,7 @@ parsePrinter dir name = runInterpreter $ do
                             , ModuleImport "Data.Text.Lazy" (QualifiedAs $ Just "TL") NoImportList
                             , ModuleImport "Data.Text.Encoding" (QualifiedAs $ Just "TE") NoImportList
                             , ModuleImport "Data.Text.Lazy.Encoding" (QualifiedAs $ Just "TLE") NoImportList
-                            , ModuleImport "Data.Map" NotQualified NoImportList
+                            , ModuleImport "Data.HashMap.Lazy" NotQualified NoImportList
                             , ModuleImport "Data.Map" (QualifiedAs $ Just "M") NoImportList
                             , ModuleImport "Formatting" NotQualified NoImportList
                             , ModuleImport "Formatting.Formatters" NotQualified NoImportList
