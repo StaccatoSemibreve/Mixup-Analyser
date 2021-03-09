@@ -4,10 +4,11 @@ module DetailedPartial
     ( printer
     ) where
 
-import GameSolve
+import Game
 import ParseData
 import Evaluate
 import Contexts
+import ScoreData
 import Score
 
 import Data.Maybe
@@ -56,9 +57,9 @@ printer tree = do
                      _                  -> sformat (stext % " + " % stext % ":\n" % stext % stext % "\n" % stext) att def evT sdT (prettyshowgame g c)
         
         prettyshowgame :: Game -> Context -> Text
-        prettyshowgame (Game "" _ _ gdata (Just gout)) c                = sformat ("\n" % stext % stext) (prettyshowcontext c) (prettyshowres gout)
-        prettyshowgame (Game gname "" "" gdata (Just gout)) c           = sformat ("\n" % stext % "\n" % stext % "\n" % stext) gname (prettyshowcontext c) (prettyshowres gout)
-        prettyshowgame (Game gname attname defname gdata (Just gout)) c = sformat ("\n" % stext % "\n" % stext % "\n (" % stext % " vs " % stext % ")" % stext) gname (prettyshowcontext c) attname defname (prettyshowres gout)
+        prettyshowgame (Game "" _ _ gdata gout) c                = sformat ("\n" % stext % stext) (prettyshowcontext c) (prettyshowres gout)
+        prettyshowgame (Game gname "" "" gdata gout) c           = sformat ("\n" % stext % "\n" % stext % "\n" % stext) gname (prettyshowcontext c) (prettyshowres gout)
+        prettyshowgame (Game gname attname defname gdata gout) c = sformat ("\n" % stext % "\n" % stext % "\n (" % stext % " vs " % stext % ")" % stext) gname (prettyshowcontext c) attname defname (prettyshowres gout)
         
         prettyshowcontext :: Context -> Text
         prettyshowcontext c = foldr prettyshowkeyval (prettyshowkeyvalfirst . head . M.toList $ c) . tail . M.toList $ c

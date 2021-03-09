@@ -1,6 +1,6 @@
 module Args
     ( opts
-    , Flags (flagVerbose, flagHelp, flagConfig, flagLog, flagIn, flagOut, flagScores, flagUpdaters, flagEndStates, flagPrinters)
+    , Flags (flagVerbose, flagHelp, flagConfig, flagLog, flagXML, flagIn, flagOut, flagScores, flagUpdaters, flagEndStates, flagPrinters)
     , flags
     ) where
 
@@ -17,6 +17,7 @@ data Flag = Verbose
           | Help
           | Config String
           | Log String
+          | XML String
           | In String
           | Out String
           | Scores String
@@ -30,6 +31,7 @@ options = [ Option ['v']    ["verbose"]     (NoArg Verbose)             "Output 
           , Option ['h']    ["help"]        (NoArg Help)                "Use this tool to create descriptions of probabilistically unexploitable play for the given mixups."
           , Option ['c']    ["config"]      (OptArg config "FILE")      "The configuration file - 'config.yaml' by default."
           , Option ['l']    ["log"]         (OptArg logf "FILE")        "The log file - 'log.txt' by default."
+          , Option ['x']    ["xml"]         (OptArg xmld "DIR")         "The XML directory, for converting TreeSheets documents into appropriate YAML files - 'xml' by default."
           , Option ['i']    ["in"]          (OptArg ind "DIR")          "The mixup data directory - 'in' by default."
           , Option ['o']    ["out"]         (OptArg outd "DIR")         "The output file directory - 'out' by default."
           , Option ['s']    ["scores"]      (OptArg scoresd "DIR")      "The Score Module directory, for rating how good or bad situations are - 'score' by default."
@@ -38,9 +40,10 @@ options = [ Option ['v']    ["verbose"]     (NoArg Verbose)             "Output 
           , Option ['p']    ["printers"]    (OptArg printersd "DIR")    "The Printer Module directory, for converting output data into a readable file - 'printer' by default."
           ]
 
-config, logf, ind, outd, scoresd, updatersd, endstatesd, printersd :: Maybe String -> Flag
+config, logf, xmld, ind, outd, scoresd, updatersd, endstatesd, printersd :: Maybe String -> Flag
 config      = Config    . fromMaybe "config.yaml"
 logf        = Log       . fromMaybe "log.txt"
+xmld        = XML       . fromMaybe "xml"
 ind         = In        . fromMaybe "in"
 outd        = Out       . fromMaybe "out"
 scoresd     = Scores    . fromMaybe "score"
@@ -67,6 +70,8 @@ isConfig (Config _) = True
 isConfig _ = False
 isLog (Log _) = True
 isLog _ = False
+isXML (XML _) = True
+isXML _ = False
 isIn (In _) = True
 isIn _ = False
 isOut (Out _) = True
@@ -82,6 +87,7 @@ isPrinters _ = False
 
 fromFlag (Config x) = x
 fromFlag (Log x) = x
+fromFlag (XML x) = x
 fromFlag (In x) = x
 fromFlag (Out x) = x
 fromFlag (Scores x) = x
@@ -95,6 +101,7 @@ hasVerbose       = any isVerbose
 hasHelp          = any isHelp
 getConfig        = flagValue isConfig "config.yaml"
 getLog           = flagValue isLog "log.txt"
+getXML           = flagValue isXML "xml"
 getIn            = flagValue isIn "in"
 getOut           = flagValue isOut "out"
 getScores        = flagValue isScores "score"
@@ -107,6 +114,7 @@ data Flags =
           , flagHelp        :: Bool
           , flagConfig      :: FilePath
           , flagLog         :: FilePath
+          , flagXML         :: FilePath
           , flagIn          :: FilePath
           , flagOut         :: FilePath
           , flagScores      :: FilePath
@@ -115,4 +123,4 @@ data Flags =
           , flagPrinters    :: FilePath
     }
 flags :: [Flag] -> Flags
-flags xs = Flags (hasVerbose xs) (hasHelp xs) (getConfig xs) (getLog xs) (getIn xs) (getOut xs) (getScores xs) (getUpdaters xs) (getEndStates xs) (getPrinters xs)
+flags xs = Flags (hasVerbose xs) (hasHelp xs) (getConfig xs) (getLog xs) (getXML xs) (getIn xs) (getOut xs) (getScores xs) (getUpdaters xs) (getEndStates xs) (getPrinters xs)

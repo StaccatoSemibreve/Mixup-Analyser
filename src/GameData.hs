@@ -23,15 +23,17 @@ import Formatting.Buildable
 data ResultSimple = ResultSimple {evSimpleCol::Double, evSimpleRow::Double, sdSimpleCol::Double, sdSimpleRow::Double, weightsColsSimple::[Double], weightsRowsSimple::[Double]}
     deriving (Show)
 
-data GameSimple = GameSimple {gameSName::Text, gameSCols::[Text], gameSRows::[Text], gameSMatrixCol::(Matrix Double), gameSMatrixRow::(Matrix Double), gameSOutcomes::(Maybe ResultSimple)}
+data GameSimple = GameSimple {gameSName::Text, gameSCols::[Text], gameSRows::[Text], gameSMatrixCol::(Matrix Double), gameSMatrixRow::(Matrix Double), gameSOutcomes::ResultSimple}
 instance Buildable GameSimple where
     build g = let
-                  basebuilder = bformat (stext % ":\n Column's Game: " % shown % "\n Row's Game: " % shown % "\n Column player: " % shown % "\n Row player: " % shown)
-                  resbuilder = bformat (stext % ":\n Column's Game: " % shown % "\n Row's Game: " % shown % "\n Column player: " % shown % "\n Row player: " % shown % "\n EVs: " % shown % "\n SDs: " % shown)
+                  (ResultSimple evc evr sdc sdr wc wr) = gameSOutcomes g
+                  n = gameSName g
+                  m1 = gameSMatrixCol g
+                  m2 = gameSMatrixRow g
+                  c = zip (gameSCols g) wc
+                  r = zip (gameSRows g) wr
               in
-                  case gameSOutcomes g of
-                       Nothing                                      -> basebuilder (gameSName g) (gameSMatrixCol g) (gameSMatrixRow g) (gameSCols g)          (gameSRows g)
-                       Just (ResultSimple evc evr sdc sdr wc wr)    -> resbuilder  (gameSName g) (gameSMatrixCol g) (gameSMatrixRow g) (zip (gameSCols g) wc) (zip (gameSRows g) wr) (evc, evr) (sdc, sdr)
+                  bformat (stext % ":\n Column's Game: " % shown % "\n Row's Game: " % shown % "\n Column player: " % shown % "\n Row player: " % shown % "\n EVs: " % shown % "\n SDs: " % shown) n m1 m2 c r (evc, evr) (sdc, sdr)
 instance Show GameSimple where
     show g = formatToString F.build g
 
@@ -43,15 +45,12 @@ data Result = Result {evc::Double, evr::Double, sdc::Double, sdr::Double, weight
 instance Show Result where
     show r = "\n EVs: " ++ (show (evc r, evr r)) ++ "\n SDs: " ++ (show (sdc r, sdr r)) ++ "\n Attacker Options: " ++ (show . weightsAtts $ r) ++ "\n Defender Options: " ++ (show . weightsDefs $ r)
 
-data Game = Game {gameCName::Text, attCName::Text, defCName::Text, gameData::[OptOutcome], outcomesC::(Maybe Result)}
+data Game = Game {gameCName::Text, attCName::Text, defCName::Text, gameData::[OptOutcome], outcomesC::Result}
 instance Ord Game where
     compare = compare `on` gameCName
 instance Eq Game where
     a == b = and [gameCName a == gameCName b, attCName a == attCName b, defCName a == defCName b]
 instance Show Game where
-    show (Game "" _ _ gdata Nothing) = show gdata
-    show (Game "" _ _ gdata (Just gout)) = show gout
-    show (Game gname "" "" gdata Nothing) = (unpack gname) ++ "\n" ++ (show gdata)
-    show (Game gname "" "" gdata (Just gout)) = (unpack gname) ++ "\n" ++ (show gout)
-    show (Game gname attname defname gdata Nothing) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")\n" ++ (show gdata)
-    show (Game gname attname defname gdata (Just gout)) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")" ++ (show gout)
+    show (Game "" _ _ gdata gout) = show gout
+    show (Game gname "" "" gdata gout) = (unpack gname) ++ "\n" ++ (show gout)
+    show (Game gname attname defname gdata gout) = (unpack gname) ++ " (" ++ (unpack attname) ++ " vs " ++ (unpack defname) ++ ")" ++ (show gout)

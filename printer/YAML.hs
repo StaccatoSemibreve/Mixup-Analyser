@@ -4,10 +4,11 @@ module YAML
     ( printer
     ) where
 
-import GameSolve
+import Game
 import ParseData
 import Evaluate
 import Contexts
+import ScoreData
 import Score
 
 import Data.Maybe

@@ -1,20 +1,12 @@
 module Score
-    ( Score
-    , EndState
-    , Updater
-    , Printer
-    , ModuleDatum (ModuleDatum, namedatum, mixdatum, scoreattdatum, scoredefdatum, enddatum, updatum, printdatum, printpath, outdatum)
-    , ModuleData (ModuleData, mixdata, scoredata, enddata, updata, printdata, instrdata)
-    , ModuleReader
-    , FlagReader
-    , askMods, askFlags
-    , Flags
+    ( askMods, askFlags
     , environment, getModule
     , loggerF, writerF
     , logger, writer
     , scoreatt, scoredef, scoresatt, scoresdef, updateContext, endCheck, printTree
     ) where
 
+import ScoreData
 import Contexts
 import ParseData
 import Parse
@@ -33,14 +25,11 @@ import Formatting
 import Formatting.Formatters
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as HashMap
 import Control.Monad.Identity
 import Control.Monad.Reader
 import Control.Monad.State.Lazy (evalState, execState)
-
-type Score = ContextS Double
-type EndState = ContextS Bool
-type Updater = ContextS ()
-type Printer = TreeGame -> ModuleReader Identity Text
 
 parseScore :: FilePath -> String -> IO (Either InterpreterError Score)
 parseScore dir name = runInterpreter $ do
@@ -97,8 +86,9 @@ parsePrinter dir name = runInterpreter $ do
                 loadModules [dir ++ "/" ++ name ++ ".hs"]
                 setTopLevelModules [name]
                 setImportsF [ ModuleImport "Prelude" NotQualified NoImportList
-                            , ModuleImport "GameSolve" NotQualified NoImportList
+                            , ModuleImport "Game" NotQualified NoImportList
                             , ModuleImport "Contexts" NotQualified NoImportList
+                            , ModuleImport "ScoreData" NotQualified NoImportList
                             , ModuleImport "ParseData" NotQualified NoImportList
                             , ModuleImport "Evaluate" NotQualified NoImportList
                             , ModuleImport "Data.Tree" NotQualified NoImportList
@@ -119,28 +109,6 @@ parsePrinter dir name = runInterpreter $ do
                             ]
                 
                 interpret ("printer") (as :: Printer)
-
-data ModuleDatum =
-    ModuleDatum { namedatum :: Text
-                , mixdatum :: MixupData
-                , scoreattdatum :: [(Text, Score)]
-                , scoredefdatum :: [(Text, Score)]
-                , enddatum :: (Text, EndState)
-                , updatum :: (Text, Updater)
-                , printdatum :: (Text, Printer)
-                , printpath :: Text
-                , outdatum :: Recontext
-    }
-data ModuleData =
-    ModuleData { mixdata :: Map Text MixupData
-               , scoredata :: Map Text Score
-               , enddata :: Map Text EndState
-               , updata :: Map Text Updater
-               , printdata :: Map Text Printer
-               , instrdata :: [Instruction]
-    }
-type ModuleReader a = ReaderT (ModuleDatum, Flags) a
-type FlagReader = ReaderT Flags IO
 
 askMods :: (Monad a) => ModuleReader a ModuleDatum
 askMods = fmap fst ask
@@ -206,11 +174,11 @@ environment = do
     parsedData <- liftIO $ mapM (\file -> parseData $ flagIn args ++ "/" ++ file) reqData
     loggerF "Parsed all required input data!"
     
-    let scoreLookup = Map.fromList . zip (map pack reqScores) $! parsedScores
-    let endLookup = Map.fromList . zip (map pack reqEnds) $! parsedEnds
-    let updaterLookup = Map.fromList . zip (map pack reqUpdaters) $! parsedUpdaters
-    let printerLookup = Map.fromList . zip (map pack reqPrinters) $! parsedPrinters
-    let dataLookup = Map.fromList . zip (map pack reqData) $! parsedData
+    let scoreLookup = HashMap.fromList . zip (map pack reqScores) $! parsedScores
+    let endLookup = HashMap.fromList . zip (map pack reqEnds) $! parsedEnds
+    let updaterLookup = HashMap.fromList . zip (map pack reqUpdaters) $! parsedUpdaters
+    let printerLookup = HashMap.fromList . zip (map pack reqPrinters) $! parsedPrinters
+    let dataLookup = HashMap.fromList . zip (map pack reqData) $! parsedData
     loggerF "Created lookup tables!"
     
     return $ ModuleData dataLookup scoreLookup endLookup updaterLookup printerLookup instructions
@@ -221,10 +189,10 @@ environment = do
         parseScript :: Show a => (FilePath -> String -> IO (Either a b)) -> FilePath -> String -> IO b
         parseScript f dir file = fmap (either (\e -> error . show $ e) id) . f dir $ file
 
-getModule :: (Monad b) => String -> (ModuleData -> Map Text a) -> ReaderT ModuleData b (Text -> a)
+getModule :: (Monad b) => String -> (ModuleData -> HashMap Text a) -> ReaderT ModuleData b (Text -> a)
 getModule err f = do
     env <- ask
-    return (\t -> fromMaybe (error $ err ++ ": " ++ (unpack t)) . Map.lookup t . f $ env)
+    return (\t -> fromMaybe (error $ err ++ ": " ++ (unpack t)) . HashMap.lookup t . f $ env)
 
 scoreatt :: (Monad a) => Context -> ModuleReader a Double
 scoreatt c = do

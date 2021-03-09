@@ -30,10 +30,10 @@ library
       Evaluate
       Game
       GameData
-      GameSolve
       Parse
       ParseData
       Score
+      ScoreData
   other-modules:
       Paths_mixups
   hs-source-dirs:

@@ -1,6 +1,5 @@
 -- manipulates the yaml data into the relevant data trees, evaluates from that
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
 
 module Evaluate
     ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
@@ -11,17 +10,20 @@ module Evaluate
 import Contexts
 import ParseData
 import Game
-import GameSolve
 import Score
+import ScoreData
 
 import Data.List
 import Data.Maybe
 import Data.Function
 import Data.Text (Text, unpack)
 import Data.Tree
+import Data.Hashable (Hashable)
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as HashMap
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Monad.Memo (MemoT, memo)
+import Control.Monad.Memo (MemoStateT, MemoT, memo)
 import qualified Control.Monad.Memo as Memo
 import Control.Monad.Reader
 import Control.Monad.State.Lazy
@@ -90,7 +92,13 @@ outcomesToContextTree = do
         
         errMix meta = error $ "No mixups with required attacker (" ++ (unpack . metaAtt $ meta) ++ ") and defender (" ++ (unpack . metaDef $ meta) ++ ") called '" ++ (unpack . metaName $ meta) ++ "' found."
 
-type TreeMemoT = MemoT [(Opt, Opt, Double, Double)] ResultSimple
+instance (Ord k, Hashable k) => Memo.MapLike (HashMap k v) k v where
+    add = HashMap.insert
+    lookup = HashMap.lookup
+
+type MemoTHash k v = MemoStateT (HashMap k v) k v
+type TreeMemoT = MemoTHash [(Opt, Opt, Double, Double)] ResultSimple
+
 treeScoreFolder :: (Monad a) => TreeContextItem -> [TreeMemoT (ModuleReader a) TreeGameItem] -> TreeMemoT (ModuleReader a) TreeGameItem
 treeScoreFolder (meta,a,b,c) [] = do
     mods <- lift askMods
@@ -99,14 +107,14 @@ treeScoreFolder (meta,a,b,c) [] = do
     let scorea = head scoresa
     let scored = head scoresd
     let g = [(a,b,scorea,scored)]
-    res <- memo (pure . solveComplexCore) g
-    return $ TreeGameItem c a b (Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . Just . resultComplex g $ res) scoresa scoresd [] []
+    res <- memo (pure . solveComplex) g
+    return $ TreeGameItem c a b (Game "" (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) g . resultComplex g $ res) scoresa scoresd [] []
 treeScoreFolder (meta,a,b,c) subgamesM = do
     outsC <- map (\tgi -> map (\x -> (tgiAtt tgi, tgiDef tgi, x)) $ tgiAttEVs tgi) <$> sequence subgamesM
     outsR <- map (\tgi -> map (\x -> (tgiAtt tgi, tgiDef tgi, x)) $ tgiDefEVs tgi) <$> sequence subgamesM
     
-    evs <- map (\tgi -> (tgiAtt tgi, tgiDef tgi, evc . fromMaybe (error "???") . outcomesC . tgiGame $ tgi, evr . fromMaybe (error "???") . outcomesC . tgiGame $ tgi)) <$> sequence subgamesM
-    res <- memo (pure . solveComplexCore) evs
+    evs <- map (\tgi -> (tgiAtt tgi, tgiDef tgi, evc . outcomesC . tgiGame $ tgi, evr . outcomesC . tgiGame $ tgi)) <$> sequence subgamesM
+    res <- memo (pure . solveComplex) evs
     
     let gamesC = map (gameSimplePartial . gameSimplePartialOpts) . transpose $ outsC
         gamesR = map (gameSimplePartial . gameSimplePartialOpts) . transpose $ outsR
@@ -119,7 +127,7 @@ treeScoreFolder (meta,a,b,c) subgamesM = do
         sdsC = map (\g -> calcSDSimpleCore g wc wr) gamesC
         sdsR = map (\g -> calcSDSimpleCore g wc wr) gamesR
     
-    return $ TreeGameItem c a b (Game (fromMaybe "" . fmap metaName $ meta) (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) evs . Just . resultComplex evs $ res) evsC evsR sdsC sdsR
+    return $ TreeGameItem c a b (Game (fromMaybe "" . fmap metaName $ meta) (fromMaybe "" . fmap metaAtt $ meta) (fromMaybe "" . fmap metaDef $ meta) evs . resultComplex evs $ res) evsC evsR sdsC sdsR
 
 scanTree f ~(Node r l) = Node r $ map (scan' r) l where
     scan' a ~(Node n b) = let a' = f a n in Node a' $ map (scan' r) b 

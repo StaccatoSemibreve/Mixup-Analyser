@@ -4,9 +4,8 @@
 module Main where
 
 -- calculates nash equilibriums, does related backend stuff
-import Game
 import GameData
-import GameSolve
+import Game
 -- parses yaml into specific types also stored here
 import ParseData
 import Parse
@@ -15,6 +14,7 @@ import Evaluate
 -- the helper functions used by Custom so that it's not also full of things that should never be altered
 import Contexts
 -- handles the score, endstate check, and context updating functions, defined at runtime
+import ScoreData
 import Score
 -- handles the program arguments
 import Args
@@ -24,6 +24,8 @@ import Data.List
 import Data.List.Split
 import Data.Text (Text, unpack, pack)
 import Data.Tree
+import Data.HashMap.Lazy (HashMap)
+import qualified Data.HashMap.Lazy as HashMap
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad
@@ -31,7 +33,7 @@ import Control.Comonad
 import System.Environment
 import System.Directory (listDirectory)
 import System.FilePath (makeValid)
-import Control.Monad.Memo (MonadMemo, startEvalMemoT)
+import Control.Monad.Memo (MonadMemo, startEvalMemoT, runMemoStateT, evalMemoStateT)
 import qualified Control.Monad.Memo as Memo
 import Criterion.Main
 import Control.Monad.Reader
@@ -78,7 +80,11 @@ program = do
             flags <- askFlags
             growntree <- outcomesToContextTree
             logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
-            gametree <- startEvalMemoT . sequence . extend (foldTree treeScoreFolder) $ growntree
+--             gametree <- startEvalMemoT . sequence . extend (foldTree treeScoreFolder) $ growntree
+            memoedstuff <- (`runMemoStateT` HashMap.empty) . sequence . extend (foldTree treeScoreFolder) $ growntree
+--             gametree <- (`evalMemoStateT` HashMap.empty) . sequence . extend (foldTree treeScoreFolder) $ growntree
+            logger . ("Tree node count: "++) . show . HashMap.size . snd $ memoedstuff
+            let gametree = fst memoedstuff
             logger "Analysed context tree, using its Score module!"
             let filename = makeValid . unpack . printpath $ mods
             logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
