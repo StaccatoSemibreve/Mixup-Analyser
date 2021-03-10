@@ -4,7 +4,7 @@
 module Evaluate
     ( outcomesToContextTree -- convert from a list of outcomes to a ContextTree
     , treeScoreFolder -- the function to use in foldTree when folding across scored outcomes
-    , TreeMemoT
+    , TreeMemoT, MemoTHash
     ) where
 
 import Contexts
@@ -21,8 +21,6 @@ import Data.Tree
 import Data.Hashable (Hashable)
 import Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as HashMap
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Control.Monad.Memo (MemoStateT, MemoT, memo)
 import qualified Control.Monad.Memo as Memo
 import Control.Monad.Reader
@@ -51,19 +49,19 @@ mixupFilter context (Just mix) = case and[evalState (compareAll (reqs mix)) cont
                                                                                         x -> Right . MixupFiltered (mname mix) . map (recontextToOutcome (attOptions mix) (defOptions mix)) $ x
                                                                            False -> Left (mname mix, context)
     where
-        outcomesFilter :: Context -> [Recontext] -> Map Text Option -> Map Text Option -> [Recontext]
-        outcomesFilter context outcomes atts defs = filter (\(Recontext att def _ _ _) -> (Map.member att atts) && (Map.member def defs)) outcomes
+        outcomesFilter :: Context -> [Recontext] -> HashMap Text Option -> HashMap Text Option -> [Recontext]
+        outcomesFilter context outcomes atts defs = filter (\(Recontext att def _ _ _) -> (HashMap.member att atts) && (HashMap.member def defs)) outcomes
         
-        optionsFilter :: Context -> Map Text Option -> Map Text Option
-        optionsFilter c = Map.filter (\o -> and [evalState (compareAll (require o)) c, evalState (compareNone (antirequire o)) c])
+        optionsFilter :: Context -> HashMap Text Option -> HashMap Text Option
+        optionsFilter c = HashMap.filter (\o -> and [evalState (compareAll (require o)) c, evalState (compareNone (antirequire o)) c])
         
-        recontextToOutcome :: Map Text Option -> Map Text Option -> Recontext -> Outcome
+        recontextToOutcome :: HashMap Text Option -> HashMap Text Option -> Recontext -> Outcome
         recontextToOutcome atts defs rec = Outcome context rec (optionWeight . optionFromRecontextCol atts $ rec) (optionWeight . optionFromRecontextRow defs $ rec)
         
-        optionFromRecontextCol :: Map Text Option -> Recontext -> Option
-        optionFromRecontextCol options rec = fromMaybe (error "missing attack option") . Map.lookup (colOption rec) $ options
-        optionFromRecontextRow :: Map Text Option -> Recontext -> Option
-        optionFromRecontextRow options rec = fromMaybe (error "missing defense option") . Map.lookup (rowOption rec) $ options
+        optionFromRecontextCol :: HashMap Text Option -> Recontext -> Option
+        optionFromRecontextCol options rec = fromMaybe (error "missing attack option") . HashMap.lookup (colOption rec) $ options
+        optionFromRecontextRow :: HashMap Text Option -> Recontext -> Option
+        optionFromRecontextRow options rec = fromMaybe (error "missing defense option") . HashMap.lookup (rowOption rec) $ options
 mixupFilter context Nothing = Left ("", context)
 
         
@@ -87,7 +85,7 @@ outcomesToContextTree = do
             ended <- endCheck newcontext
             let nextmix = if ended
                             then Nothing
-                            else fmap (\next -> fromMaybe (errMix next) . Map.lookup next . mixdatum $ mods) . next . result $ o
+                            else fmap (\next -> fromMaybe (errMix next) . HashMap.lookup next . mixdatum $ mods) . next . result $ o
             return (newcontext, nextmix, next . result $ o)
         
         errMix meta = error $ "No mixups with required attacker (" ++ (unpack . metaAtt $ meta) ++ ") and defender (" ++ (unpack . metaDef $ meta) ++ ") called '" ++ (unpack . metaName $ meta) ++ "' found."

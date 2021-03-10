@@ -16,7 +16,6 @@ import qualified Data.ByteString.Lazy as B
 import Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as HashMap
 import Data.Hashable
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Tree
 
@@ -103,12 +102,12 @@ readInstructions :: String -> IO ([Instruction])
 readInstructions = readYAML
 
 parseData :: FilePath -> IO (MixupData)
-parseData = fmap (\mixes -> Map.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (MixupMetadata (mixupNameParsed m) a d, unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml")
+parseData = fmap (\mixes -> HashMap.fromList $ concat . map (\((a,d),mgroup) -> map (\m -> (MixupMetadata (mixupNameParsed m) a d, unparsedMixup m)) . mixups $ mgroup) . zip (zip (map attacker mixes) (map defender mixes)) $ mixes) . readYAML . (++".yaml")
 
 -- from here onward, we're transforming parsed data into more useful variants with maps and such
 
-mapify :: Ord k => (v -> k) -> [v] -> Map k v
-mapify f = Map.fromList . map (\v -> (f v, v))
+mapify :: (Hashable k, Eq k) => (v -> k) -> [v] -> HashMap k v
+mapify f = HashMap.fromList . map (\v -> (f v, v))
 
 unparsedMixup :: ParsedMixup -> Mixup
 unparsedMixup (ParsedMixup name req unreq atts defs outs) = Mixup name req unreq (mapify optionName atts) (mapify optionName defs) outs

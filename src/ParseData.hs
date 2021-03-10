@@ -20,10 +20,9 @@ module ParseData
 import Contexts
 import GameData
 
-import Data.Text (Text, unpack)
-import qualified Data.ByteString.Lazy as B
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Text (Text)
+import Data.Hashable
+import Data.HashMap.Lazy (HashMap)
 import Data.Tree
 
 type TreeContextItem = (Maybe MixupMetadata, Opt, Opt, Context)
@@ -70,6 +69,10 @@ data MixupMetadata =
                   , metaDef ::Text
     } deriving (Eq, Ord, Show)
 
+instance Hashable MixupMetadata where
+    hashWithSalt s (MixupMetadata a b c) = hashWithSalt s (a,b,c)
+    hash (MixupMetadata a b c) = hash (a,b,c)
+
 data Option =
     Option { optionName::Text
            , require::Context
@@ -77,13 +80,13 @@ data Option =
            , optionWeight::Maybe Double
     } deriving (Eq, Ord, Show)
 
-type MixupData = Map MixupMetadata Mixup
+type MixupData = HashMap MixupMetadata Mixup
 
 data Mixup = 
     Mixup { mname :: Text
           , reqs::Context
           , antireqs::Context
-          , attOptions::(Map Text Option)
-          , defOptions::(Map Text Option)
+          , attOptions::(HashMap Text Option)
+          , defOptions::(HashMap Text Option)
           , outcomes::[Recontext]
     } deriving (Eq, Ord, Show)

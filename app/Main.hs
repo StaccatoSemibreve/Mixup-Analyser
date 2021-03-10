@@ -24,16 +24,15 @@ import Data.List
 import Data.List.Split
 import Data.Text (Text, unpack, pack)
 import Data.Tree
+import qualified Data.Tree as Tree
 import Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as HashMap
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Control.Monad
+import Control.Monad.Identity
 import Control.Comonad
 import System.Environment
-import System.Directory (listDirectory)
 import System.FilePath (makeValid)
-import Control.Monad.Memo (MonadMemo, startEvalMemoT, runMemoStateT, evalMemoStateT)
+import Control.Monad.Memo (MonadMemo, runMemoStateT)
 import qualified Control.Monad.Memo as Memo
 import Criterion.Main
 import Control.Monad.Reader
@@ -80,13 +79,19 @@ program = do
             flags <- askFlags
             growntree <- outcomesToContextTree
             logger $ "Grown context tree for " ++ (unpack . namedatum $ mods) ++ ", using its respective EndState and Updater modules!"
---             gametree <- startEvalMemoT . sequence . extend (foldTree treeScoreFolder) $ growntree
-            memoedstuff <- (`runMemoStateT` HashMap.empty) . sequence . extend (foldTree treeScoreFolder) $ growntree
---             gametree <- (`evalMemoStateT` HashMap.empty) . sequence . extend (foldTree treeScoreFolder) $ growntree
-            logger . ("Tree node count: "++) . show . HashMap.size . snd $ memoedstuff
-            let gametree = fst memoedstuff
+            let treesize = length growntree
+            logger . ("Tree node count: "++) . show $ treesize
+            (progress, gametree, memodata) <- progressThingy treesize growntree
+            liftIO $ mapM_ putStr progress
+            liftIO $ putStrLn ""
+            logger . ("Distinct game count: "++) . show . HashMap.size $ memodata
             logger "Analysed context tree, using its Score module!"
             let filename = makeValid . unpack . printpath $ mods
             logger $ "Exporting to " ++ (flagOut flags) ++ "/" ++ filename ++ " using its Printer module!"
             printed <- printTree gametree
             writer (unpack . printpath $ mods) . unpack $ printed
+        
+        progressThingy :: Monad a => Int -> TreeContext -> ModuleReader a ([String], TreeGame, HashMap [(Opt, Opt, Double, Double)] ResultSimple)
+        progressThingy count tree = do
+            (gametree, memodata) <- (`runMemoStateT` HashMap.empty) . sequence . extend (foldTree treeScoreFolder) $ tree
+            return (fmap (\x -> "*") . chunksOf (count `quot` 20) . flatten $ gametree, gametree, memodata)
